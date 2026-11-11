@@ -109,7 +109,10 @@
         "(kapcsold|oltsd) (le|ki) az összes lámpát",
         "(kapcsold|oltsd) (le|ki) a lámpákat",
         "(kapcsold|oltsd) (le|ki) minden lámpát",
-        "minden lámpa ki"
+        "minden lámpa ki",
+        "[a|az összes] lámpák (le|ki)kapcsolása",
+        "[az] összes lámpa (le|ki)kapcsolása",
+        "lámpák oltása"
       ],
       "id": "lights_off"
     },
@@ -120,7 +123,10 @@
         "(kapcsold|gyújtsd) fel a lámpákat",
         "(kapcsold|gyújtsd) fel minden lámpát",
         "kapcsold be az összes lámpát",
-        "minden lámpa be"
+        "minden lámpa be",
+        "[a|az összes] lámpák (fel|be)kapcsolása",
+        "[az] összes lámpa (fel|be)kapcsolása",
+        "lámpák felgyújtása"
       ],
       "id": "lights_on"
     },

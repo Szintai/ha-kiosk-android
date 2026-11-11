@@ -37,6 +37,9 @@ SENTENCES = {
         "(kapcsold|oltsd) (le|ki) a lámpákat",
         "(kapcsold|oltsd) (le|ki) minden lámpát",
         "minden lámpa ki",
+        "[a|az összes] lámpák (le|ki)kapcsolása",
+        "[az] összes lámpa (le|ki)kapcsolása",
+        "lámpák oltása",
     ],
     "lights_on": [
         "(kapcsold|gyújtsd) fel az összes lámpát",
@@ -44,6 +47,9 @@ SENTENCES = {
         "(kapcsold|gyújtsd) fel minden lámpát",
         "kapcsold be az összes lámpát",
         "minden lámpa be",
+        "[a|az összes] lámpák (fel|be)kapcsolása",
+        "[az] összes lámpa (fel|be)kapcsolása",
+        "lámpák felgyújtása",
     ],
     # Single lights: "[a] <szoba> lámp(a|át)" accepts the nominative and the accusative form.
     **{
