@@ -29,7 +29,8 @@ class DataStoreConfigRepository @Inject constructor(
             prefs[MOTION_MIN_AREA] = next.motionMinAreaPercent
             prefs[DIM_BRIGHTNESS] = next.dimBrightnessPercent
             prefs[REPORT_TO_HA] = next.reportToHa
-            prefs[VOICE_ENABLED] = next.voiceEnabled
+            prefs[VOICE_MODE] = next.voiceMode.key
+            prefs[VOICE_WAKE_PHRASE] = next.voiceWakePhrase
             prefs[VOICE_LANGUAGE] = next.voiceLanguage
         }
     }
@@ -45,7 +46,10 @@ class DataStoreConfigRepository @Inject constructor(
             motionMinAreaPercent = this[MOTION_MIN_AREA] ?: d.motionMinAreaPercent,
             dimBrightnessPercent = this[DIM_BRIGHTNESS] ?: d.dimBrightnessPercent,
             reportToHa = this[REPORT_TO_HA] ?: d.reportToHa,
-            voiceEnabled = this[VOICE_ENABLED] ?: d.voiceEnabled,
+            // Older builds stored a plain boolean: "enabled" meant listen-on-wake.
+            voiceMode = this[VOICE_MODE]?.let(VoiceMode::fromKey)
+                ?: if (this[VOICE_ENABLED] == true) VoiceMode.OnWake else d.voiceMode,
+            voiceWakePhrase = this[VOICE_WAKE_PHRASE] ?: d.voiceWakePhrase,
             voiceLanguage = this[VOICE_LANGUAGE] ?: d.voiceLanguage,
         )
     }
@@ -60,6 +64,8 @@ class DataStoreConfigRepository @Inject constructor(
         val DIM_BRIGHTNESS = intPreferencesKey("dim_brightness_pct")
         val REPORT_TO_HA = booleanPreferencesKey("report_to_ha")
         val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+        val VOICE_MODE = stringPreferencesKey("voice_mode")
+        val VOICE_WAKE_PHRASE = stringPreferencesKey("voice_wake_phrase")
         val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
     }
 }

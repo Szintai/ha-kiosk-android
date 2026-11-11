@@ -18,11 +18,15 @@ data class AppConfig(
     val dimBrightnessPercent: Int = 1,
     /** Report wake events / presence to Home Assistant (mobile_app integration). */
     val reportToHa: Boolean = true,
-    /** Listen for a voice command when the display wakes up (and via the mic button). */
-    val voiceEnabled: Boolean = false,
+    /** When the tablet listens for a voice command (the mic button always works unless [VoiceMode.Off]). */
+    val voiceMode: VoiceMode = VoiceMode.Off,
+    /** Continuous mode only reacts to commands containing one of these phrases (comma separated), e.g. "hey jarvis, hé jarvis". */
+    val voiceWakePhrase: String = "hey jarvis, hé jarvis, hej jarvis",
     /** BCP-47 tag for speech recognition; the HA conversation language is its first part. */
     val voiceLanguage: String = "hu-HU",
 ) {
+    val voiceEnabled: Boolean get() = voiceMode != VoiceMode.Off
+
     val isConfigured: Boolean get() = haUrl.isNotBlank() && haToken.isNotBlank()
 
     /** Full URL of the dashboard the WebView should open. */
@@ -32,5 +36,23 @@ data class AppConfig(
     companion object {
         const val DEFAULT_HA_URL = "http://192.168.0.11:8123"
         const val DEFAULT_DASHBOARD_PATH = "dashboard-kiosk/home"
+    }
+}
+
+enum class VoiceMode(val key: String) {
+    /** No voice control. */
+    Off("off"),
+
+    /** Listen once after the display wakes up from the dimmed state. */
+    OnWake("on_wake"),
+
+    /** Listen whenever motion is detected in front of the tablet (15 s cool-down). */
+    OnMotion("on_motion"),
+
+    /** Always listening; commands need the wake phrase. Audio streams to Google's recogniser. */
+    Continuous("continuous");
+
+    companion object {
+        fun fromKey(key: String?): VoiceMode = entries.firstOrNull { it.key == key } ?: Off
     }
 }

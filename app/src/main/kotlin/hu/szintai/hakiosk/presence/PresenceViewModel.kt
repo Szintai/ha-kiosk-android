@@ -8,11 +8,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hu.szintai.hakiosk.BuildConfig
 import hu.szintai.hakiosk.config.AppConfig
 import hu.szintai.hakiosk.config.ConfigRepository
+import hu.szintai.hakiosk.config.VoiceMode
 import hu.szintai.hakiosk.ha.HaReporter
 import hu.szintai.hakiosk.ha.PresenceSnapshot
 import hu.szintai.hakiosk.ha.WakeStatsStore
 import hu.szintai.hakiosk.voice.VoiceController
-import hu.szintai.hakiosk.voice.VoicePhase
 import hu.szintai.hakiosk.voice.VoiceUi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +43,7 @@ class PresenceViewModel @Inject constructor(
     @Volatile private var settings = AppConfig()
     @Volatile private var wakeCount = 0L
     private var frames = 0
+    @Volatile private var lastMotionListenAt = 0L
 
     private val _mode = MutableStateFlow(DisplayMode.Active)
     val mode: StateFlow<DisplayMode> = _mode.asStateFlow()
@@ -58,9 +59,8 @@ class PresenceViewModel @Inject constructor(
             configRepository.config.collect { applyConfig(it) }
         }
         viewModelScope.launch {
-            voiceController.state.collect { ui ->
-                if (ui.phase != VoicePhase.Idle) handle(synchronized(lock) { controller.onTouch(now()) })
-            }
+            // Wake phrase / command / explicit listening = the user is here: wake and keep the display up.
+            voiceController.activity.collect { handle(synchronized(lock) { controller.onTouch(now()) }) }
         }
         viewModelScope.launch {
             while (isActive) {
@@ -80,7 +80,17 @@ class PresenceViewModel @Inject constructor(
         }
         if (trigger.onFrame(score >= s.motionMinAreaPercent / 100f)) {
             handle(synchronized(lock) { controller.onMotion(now()) })
+            listenOnMotionIfConfigured()
         }
+    }
+
+    /** [VoiceMode.OnMotion]: listen whenever someone moves in front of the tablet (with a cool-down). */
+    private fun listenOnMotionIfConfigured() {
+        if (settings.voiceMode != VoiceMode.OnMotion) return
+        val t = now()
+        if (t - lastMotionListenAt < MOTION_LISTEN_COOLDOWN_MS) return
+        lastMotionListenAt = t
+        voiceController.start()
     }
 
     /** Mic button: listen for one voice command right now. */
@@ -112,7 +122,7 @@ class PresenceViewModel @Inject constructor(
             is PresenceEvent.Woke -> {
                 _mode.value = DisplayMode.Active
                 if (event.byMotion) {
-                    if (settings.voiceEnabled) voiceController.start()
+                    if (settings.voiceMode == VoiceMode.OnWake) voiceController.start()
                     viewModelScope.launch {
                         wakeCount = stats.increment()
                         publish(present = true)
@@ -137,6 +147,7 @@ class PresenceViewModel @Inject constructor(
     private companion object {
         const val TAG = "Presence"
         const val TICK_MS = 1_000L
+        const val MOTION_LISTEN_COOLDOWN_MS = 15_000L
         const val LOG_EVERY_N_FRAMES = 3
     }
 }

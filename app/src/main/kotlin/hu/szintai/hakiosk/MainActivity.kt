@@ -39,6 +39,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import hu.szintai.hakiosk.config.ConfigRepository
+import hu.szintai.hakiosk.config.VoiceMode
 import hu.szintai.hakiosk.presence.CameraMotionSource
 import hu.szintai.hakiosk.presence.DisplayMode
 import hu.szintai.hakiosk.presence.PresenceViewModel
@@ -158,7 +159,7 @@ class MainActivity : ComponentActivity() {
         val token = intent.getStringExtra(EXTRA_HA_TOKEN)
         val path = intent.getStringExtra(EXTRA_DASHBOARD_PATH)
         val idle = if (intent.hasExtra(EXTRA_IDLE_TIMEOUT)) intent.getIntExtra(EXTRA_IDLE_TIMEOUT, 60) else null
-        val voice = if (intent.hasExtra(EXTRA_VOICE)) intent.getBooleanExtra(EXTRA_VOICE, false) else null
+        val voice = intent.getStringExtra(EXTRA_VOICE_MODE)?.let(VoiceMode::fromKey)
         if (url == null && token == null && path == null && idle == null && voice == null) return
         lifecycleScope.launch {
             configRepository.update {
@@ -167,7 +168,7 @@ class MainActivity : ComponentActivity() {
                     haToken = token ?: it.haToken,
                     dashboardPath = path ?: it.dashboardPath,
                     idleTimeoutSeconds = idle ?: it.idleTimeoutSeconds,
-                    voiceEnabled = voice ?: it.voiceEnabled,
+                    voiceMode = voice ?: it.voiceMode,
                 )
             }
         }
@@ -178,7 +179,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_HA_TOKEN = "ha_token"
         const val EXTRA_DASHBOARD_PATH = "dashboard_path"
         const val EXTRA_IDLE_TIMEOUT = "idle_timeout"
-        const val EXTRA_VOICE = "voice_enabled"
+        const val EXTRA_VOICE_MODE = "voice_mode"
     }
 }
 
@@ -192,12 +193,18 @@ private fun VoiceOverlay(ui: VoiceUi, onMicClick: () -> Unit) {
                 .padding(16.dp)
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(if (ui.phase == VoicePhase.Listening) Color(0xFFFF9F0A) else Color(0x55000000))
+                .background(
+                    when {
+                        ui.phase == VoicePhase.Listening && !ui.passive -> Color(0xFFFF9F0A)
+                        ui.passive -> Color(0x5530D158) // continuous mode: waiting for the wake phrase
+                        else -> Color(0x55000000)
+                    },
+                )
                 .clickable(onClick = onMicClick),
             contentAlignment = Alignment.Center,
         ) { Text("\uD83C\uDFA4") }
 
-        if (ui.phase != VoicePhase.Idle) {
+        if (ui.phase != VoicePhase.Idle && !ui.passive) {
             val line = when (ui.phase) {
                 VoicePhase.Listening -> ui.heard.ifBlank { "Hallgatlak…" }
                 VoicePhase.Thinking -> "\u201E${ui.heard}\u201D …"

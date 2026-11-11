@@ -1,19 +1,16 @@
 package hu.szintai.hakiosk.ui.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,106 +20,135 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import hu.szintai.hakiosk.config.AppConfig
+import hu.szintai.hakiosk.config.VoiceMode
+import hu.szintai.hakiosk.ui.theme.Palette
 
 @Composable
 fun SettingsScreen(
     onDone: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    var haUrl by remember { mutableStateOf("") }
-    var haToken by remember { mutableStateOf("") }
-    var dashboardPath by remember { mutableStateOf("") }
-    var presenceEnabled by remember { mutableStateOf(true) }
-    var idleTimeout by remember { mutableStateOf("") }
-    var motionArea by remember { mutableStateOf("") }
-    var dimBrightness by remember { mutableStateOf("") }
-    var reportToHa by remember { mutableStateOf(true) }
-    var voiceEnabled by remember { mutableStateOf(false) }
-    var voiceLanguage by remember { mutableStateOf("") }
+    var draft by remember { mutableStateOf<AppConfig?>(null) }
+    LaunchedEffect(Unit) { draft = viewModel.load() }
+    val c = draft ?: return Box(Modifier.fillMaxSize().background(Palette.Bg))
+    fun edit(transform: (AppConfig) -> AppConfig) { draft = transform(c) }
 
-    LaunchedEffect(Unit) {
-        val c = viewModel.load()
-        haUrl = c.haUrl
-        haToken = c.haToken
-        dashboardPath = c.dashboardPath
-        presenceEnabled = c.presenceEnabled
-        idleTimeout = c.idleTimeoutSeconds.toString()
-        motionArea = c.motionMinAreaPercent.toString()
-        dimBrightness = c.dimBrightnessPercent.toString()
-        reportToHa = c.reportToHa
-        voiceEnabled = c.voiceEnabled
-        voiceLanguage = c.voiceLanguage
-    }
-
-    Surface(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Palette.Bg), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .widthIn(max = 760.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
-            Text("Beállítások")
-            Field("Home Assistant URL", haUrl) { haUrl = it }
-            Field("Long-lived access token", haToken) { haToken = it }
-            Field("Dashboard útvonal (pl. dashboard-kiosk2/home)", dashboardPath) { dashboardPath = it }
+            Header(
+                onCancel = onDone,
+                onSave = { viewModel.save(c.normalised(), onSaved = onDone) },
+            )
 
-            SwitchRow("Kamerás jelenlét-érzékelés (sötétítés / ébredés)", presenceEnabled) { presenceEnabled = it }
-            Field("Sötétítés ennyi mozdulatlan másodperc után", idleTimeout, number = true) { idleTimeout = it }
-            Field("Mozgás érzékenység: változó terület %-a (kisebb = érzékenyebb)", motionArea, number = true) { motionArea = it }
-            Field("Fényerő sötétítve (%)", dimBrightness, number = true) { dimBrightness = it }
-            SwitchRow("Ébredések küldése a Home Assistantnak", reportToHa) { reportToHa = it }
-            SwitchRow("Hallgatózás ébredéskor (hangvezérlés)", voiceEnabled) { voiceEnabled = it }
-            Field("Beszédfelismerés nyelve (pl. hu-HU)", voiceLanguage) { voiceLanguage = it }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = {
-                    val d = AppConfig()
-                    viewModel.save(
-                        AppConfig(
-                            haUrl = haUrl.trim(),
-                            haToken = haToken.trim(),
-                            dashboardPath = dashboardPath.trim(),
-                            presenceEnabled = presenceEnabled,
-                            idleTimeoutSeconds = idleTimeout.toIntOrNull()?.coerceIn(5, 3600) ?: d.idleTimeoutSeconds,
-                            motionMinAreaPercent = motionArea.toIntOrNull()?.coerceIn(1, 50) ?: d.motionMinAreaPercent,
-                            dimBrightnessPercent = dimBrightness.toIntOrNull()?.coerceIn(1, 100) ?: d.dimBrightnessPercent,
-                            reportToHa = reportToHa,
-                            voiceEnabled = voiceEnabled,
-                            voiceLanguage = voiceLanguage.trim().ifBlank { d.voiceLanguage },
-                        ),
-                        onSaved = onDone,
-                    )
-                }) { Text("Mentés") }
-                OutlinedButton(onClick = onDone) { Text("Mégse") }
+            SectionLabel("Home Assistant")
+            GroupCard {
+                FieldRow("Cím", c.haUrl) { v -> edit { it.copy(haUrl = v) } }
+                Divider()
+                FieldRow("Long-lived access token", c.haToken, secret = true) { v -> edit { it.copy(haToken = v) } }
+                Divider()
+                FieldRow("Dashboard útvonal", c.dashboardPath) { v -> edit { it.copy(dashboardPath = v) } }
+                Divider()
+                SwitchRow(
+                    "Ébredések küldése",
+                    "A tablet saját eszközként jelenik meg a Home Assistantban (ébredések száma, jelenlét).",
+                    c.reportToHa,
+                ) { v -> edit { it.copy(reportToHa = v) } }
             }
+
+            SectionLabel("Jelenlét")
+            GroupCard {
+                SwitchRow(
+                    "Kamerás érzékelés",
+                    "Elsötétül, ha nincs mozgás, és mozgásra azonnal felébred. A képek nem hagyják el a tabletet.",
+                    c.presenceEnabled,
+                ) { v -> edit { it.copy(presenceEnabled = v) } }
+                if (c.presenceEnabled) {
+                    Divider()
+                    StepperRow("Sötétítés ennyi után", "mozdulatlanság esetén", c.idleTimeoutSeconds, 10..900, 10, "mp") { v -> edit { it.copy(idleTimeoutSeconds = v) } }
+                    Divider()
+                    StepperRow("Érzékenység", "a kép ekkora részének változása számít mozgásnak", c.motionMinAreaPercent, 1..30, 1, "%") { v -> edit { it.copy(motionMinAreaPercent = v) } }
+                    Divider()
+                    StepperRow("Fényerő sötétítve", null, c.dimBrightnessPercent, 1..50, 1, "%") { v -> edit { it.copy(dimBrightnessPercent = v) } }
+                }
+            }
+
+            SectionLabel("Hangvezérlés")
+            GroupCard {
+                Column(Modifier.padding(vertical = 14.dp)) {
+                    Segmented(
+                        options = VOICE_LABELS,
+                        selected = c.voiceMode.ordinal,
+                        onSelect = { i -> edit { it.copy(voiceMode = VoiceMode.entries[i]) } },
+                    )
+                    HintText(voiceHint(c.voiceMode))
+                    if (c.voiceMode == VoiceMode.Continuous) {
+                        HintText(
+                            "A mikrofon folyamatosan figyel, és a hang a Google beszédfelismerőjéhez kerül. " +
+                                "Csak az ébresztő szót tartalmazó mondat lesz parancs.",
+                            Palette.Orange,
+                        )
+                    }
+                }
+                if (c.voiceMode == VoiceMode.Continuous) {
+                    Divider()
+                    FieldRow("Ébresztő szó (több változat vesszővel)", c.voiceWakePhrase) { v -> edit { it.copy(voiceWakePhrase = v) } }
+                }
+                if (c.voiceEnabled) {
+                    Divider()
+                    FieldRow("Beszédfelismerés nyelve", c.voiceLanguage) { v -> edit { it.copy(voiceLanguage = v) } }
+                }
+            }
+            Box(Modifier.padding(bottom = 24.dp))
         }
     }
 }
 
 @Composable
-private fun Field(label: String, value: String, number: Boolean = false, onChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        label = { Text(label) },
-        singleLine = true,
-        keyboardOptions = if (number) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun Header(onCancel: () -> Unit, onSave: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label)
-        Switch(checked = checked, onCheckedChange = onChange)
+        Text("Beállítások", color = Palette.Ink, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.8).sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PillButton("Mégse", primary = false, onClick = onCancel)
+            PillButton("Mentés", primary = true, onClick = onSave)
+        }
     }
+}
+
+private val VOICE_LABELS = listOf("Ki", "Ébredéskor", "Mozgásra", "Folyamatos")
+
+private fun voiceHint(mode: VoiceMode) = when (mode) {
+    VoiceMode.Off -> "Nincs hangvezérlés."
+    VoiceMode.OnWake -> "Ha felébredsz előtte a sötétítésből, meghallgat egy parancsot. A mikrofon gomb is használható."
+    VoiceMode.OnMotion -> "Valahányszor elhaladsz előtte, meghallgat egy parancsot (15 mp-es várakozással)."
+    VoiceMode.Continuous -> "Mindig figyel az ébresztő szóra, így távolabbról is vezérelhető."
+}
+
+/** Sensible bounds and trimmed text before saving. */
+private fun AppConfig.normalised(): AppConfig {
+    val d = AppConfig()
+    return copy(
+        haUrl = haUrl.trim(),
+        haToken = haToken.trim(),
+        dashboardPath = dashboardPath.trim(),
+        idleTimeoutSeconds = idleTimeoutSeconds.coerceIn(5, 3600),
+        motionMinAreaPercent = motionMinAreaPercent.coerceIn(1, 50),
+        dimBrightnessPercent = dimBrightnessPercent.coerceIn(1, 100),
+        voiceWakePhrase = voiceWakePhrase.trim().ifBlank { d.voiceWakePhrase },
+        voiceLanguage = voiceLanguage.trim().ifBlank { d.voiceLanguage },
+    )
 }
