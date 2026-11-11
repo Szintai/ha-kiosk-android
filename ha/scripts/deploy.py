@@ -5,7 +5,9 @@ Env:  HA_TOKEN  long-lived access token (never commit it)
       HA_HOST   default 192.168.0.11
       HA_SSH    ssh host that owns the HA config dir (default: kixpi)
       HA_WWW    default /docker/container/home-assistant/config/www/kiosk
-Usage: deploy.py [v1|v2]   (default v2)
+Usage: deploy.py [v1|v2|wake]   (default v2)
+  wake -> ha/www/kiosk-wake.js + adds the wake-up tile and its pop-up to the Otthon dashboard
+          (dashboard-otthon, first section that has the otthon-tv card). Idempotent.
   v1 -> ha/www/kiosk-cards.js,    ha/dashboard/kiosk.json  -> dashboard-kiosk   (iOS dark, flat)
   v2 -> ha/www/kiosk-cards-v2.js, ha/dashboard/kiosk2.json -> dashboard-kiosk2  (ambient)
 v2 reuses the kiosk-dock card from v1, so v1's file is deployed as well.
@@ -30,8 +32,43 @@ VERSIONS = {
     "v2": {"files": ["kiosk-cards.js", "kiosk-cards-v2.js"], "dash": ("dashboard-kiosk2", "Kiosk 2", "dashboard/kiosk2.json")},
 }
 
+WAKE_ENTITY = "sensor.kiosk_tablet_wake_count"
+
+async def register_resource(ha, name):
+    subprocess.run(["ssh", SSH, f"mkdir -p {WWW}"], check=True)
+    subprocess.run(["scp", "-q", str(ROOT / "www" / name), f"{SSH}:{WWW}/{name}"], check=True)
+    res = (await ha.call(type="lovelace/resources"))["result"]
+    url = f"/local/kiosk/{name}?v={int(time.time())}"
+    cur = next((r for r in res if name in r["url"]), None)
+    if cur:
+        await ha.call(type="lovelace/resources/update", resource_id=cur["id"], res_type="module", url=url)
+    else:
+        await ha.call(type="lovelace/resources/create", res_type="module", url=url)
+
+async def deploy_wake(ha):
+    await register_resource(ha, "kiosk-wake.js")
+    cfg = (await ha.call(type="lovelace/config", url_path="dashboard-otthon"))["result"]
+    section = next(s for s in cfg["views"][0]["sections"] if any(c["type"] == "custom:otthon-tv" for c in s["cards"]))
+    cards = [c for c in section["cards"] if c.get("type") != "custom:kiosk-wake-tile"
+             and not (c.get("type") == "custom:bubble-card" and c.get("hash") == "#wakes")]
+    tile = {"type": "custom:kiosk-wake-tile", "entity": WAKE_ENTITY, "name": "Tablet ébredések", "hash": "#wakes",
+            "grid_options": {"columns": "full"}}
+    popup = {"type": "custom:bubble-card", "card_type": "pop-up", "hash": "#wakes", "name": "Tablet ébredések",
+             "icon": "mdi:motion-sensor", "entity": WAKE_ENTITY,
+             "cards": [{"type": "custom:kiosk-wake-chart", "entity": WAKE_ENTITY}]}
+    idx = max(i for i, c in enumerate(cards) if c["type"] == "custom:otthon-tv")
+    cards.insert(idx + 1, tile)
+    cards.append(popup)
+    section["cards"] = cards
+    r = await ha.call(type="lovelace/config/save", url_path="dashboard-otthon", config=cfg)
+    print("dashboard-otthon saved:", r.get("success"), r.get("error") or "")
+
 async def main():
     ver = sys.argv[1] if len(sys.argv) > 1 else "v2"
+    if ver == "wake":
+        async with HA() as ha:
+            await deploy_wake(ha)
+        return
     spec = VERSIONS[ver]
     subprocess.run(["ssh", SSH, f"mkdir -p {WWW}"], check=True)
     async with HA() as ha:
