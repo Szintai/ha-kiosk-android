@@ -9,6 +9,9 @@ from pathlib import Path
 
 TV = "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
 REMOTE = "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+WEATHER = "weather.home"  # core Open-Meteo integration (7 day forecast)
+TEMP_LIVING = "sensor.sonoff_snzb_02d_temperature_2"
+TEMP_BEDROOM = "sensor.sonoff_snzb_02d_temperature"
 LIGHTS = {  # key -> (HA entity, spoken words incl. accusative "-t", reply name)
     "living": ("light.haloszoba_lampa", "nappali", "a nappali lámpát"),
     "bedroom": ("light.aqara_lumi_light_agl004", "(hálószoba|hálószobai)", "a hálószoba lámpát"),
@@ -50,6 +53,35 @@ SENTENCES = {
         "[a|az összes] lámpák (fel|be)kapcsolása",
         "[az] összes lámpa (fel|be)kapcsolása",
         "lámpák felgyújtása",
+    ],
+    # Weather / temperature / clothing advice (read-only)
+    "weather_now": [
+        "milyen idő van [kint|odakint]",
+        "milyen az idő [kint|odakint]",
+        "hogy van kint az idő",
+        "mi az időjárás",
+        "időjárás",
+        "milyen idő lesz [ma]",
+    ],
+    "temp_out": [
+        "hány fok van [kint|odakint]",
+        "hány fok van most",
+        "mennyi a hőmérséklet [kint|odakint]",
+    ],
+    "temp_in": [
+        "hány fok van (bent|odabent|a lakásban)",
+        "mennyi a hőmérséklet (bent|a lakásban)",
+    ],
+    "temp_living": ["hány fok van a nappaliban", "mennyi a hőmérséklet a nappaliban"],
+    "temp_bedroom": ["hány fok van a hálószobában", "mennyi a hőmérséklet a hálószobában"],
+    "clothes": [
+        "milyen ruhát húzzak [fel]",
+        "milyen ruhát vegyek fel [ma]",
+        "mit vegyek fel [ma]",
+        "mit húzzak fel [ma]",
+        "hogyan öltözzek [fel]",
+        "milyen ruhában menjek",
+        "kell kabát",
     ],
     # Single lights: "[a] <szoba> lámp(a|át)" accepts the nominative and the accusative form.
     **{
@@ -102,6 +134,54 @@ PARSE_VOLUME = """
 """.strip()
 
 
+COND_HU = ("{% set cond = {'sunny':'napos','clear-night':'tiszta az ég','partlycloudy':'részben felhős',"
+           "'cloudy':'felhős','fog':'ködös','rainy':'esős','pouring':'zuhog az eső','snowy':'havazik',"
+           "'snowy-rainy':'havas eső','lightning':'villámlik','lightning-rainy':'zivatar','hail':'jégeső',"
+           "'windy':'szeles','windy-variant':'szeles','exceptional':'rendkívüli az idő'} %}")
+# one hour list/ daily list from the forecast responses; next 6 h rain sum, today's max/min
+FORECAST_VARS = (
+    "{% set t = state_attr('__W__', 'temperature') | float(0) %}"
+    "{% set d = daily['__W__'].forecast[0] %}"
+    "{% set tmax = d.temperature | float(t) %}{% set tmin = d.templow | float(t) %}"
+    "{% set rain6 = hourly['__W__'].forecast[:6] | map(attribute='precipitation') | map('float', 0) | sum %}"
+    "{% set wind = state_attr('__W__', 'wind_speed') | float(0) %}"
+).replace("__W__", WEATHER)
+
+REPLY_WEATHER = (COND_HU + FORECAST_VARS +
+    "Kint {{ t | round(0) | int }} fok van, {{ cond.get(states('__W__'), states('__W__')) }}. "
+    "A mai csúcs {{ tmax | round(0) | int }}, a minimum {{ tmin | round(0) | int }} fok."
+    "{% if rain6 > 0.3 %} A következő órákban eső várható.{% endif %}").replace("__W__", WEATHER)
+
+# Clothing: dress for the day (mean of now and today's max), colder with strong wind (> 8 m/s).
+REPLY_CLOTHES = (FORECAST_VARS +
+    "{% set eff = (t + tmax) / 2 - (2 if wind > 8 else 0) %}"
+    "Kint {{ t | round(0) | int }} fok van, ma legfeljebb {{ tmax | round(0) | int }} lesz. "
+    "{% if eff <= 0 %}Fagyos idő van: télikabát, sapka, sál és kesztyű kell."
+    "{% elif eff <= 7 %}Hideg van: vegyél fel meleg kabátot, sálat és sapkát."
+    "{% elif eff <= 14 %}Hűvös van: kabát vagy vastagabb dzseki és hosszú nadrág kell."
+    "{% elif eff <= 19 %}Enyhe idő van: egy pulóver vagy könnyű dzseki elég."
+    "{% elif eff <= 24 %}Kellemes idő van: hosszú ujjú vagy póló, könnyű nadrág."
+    "{% elif eff <= 29 %}Meleg van: póló és rövidnadrág is jó."
+    "{% else %}Nagyon meleg van: könnyű, szellős ruha, napszemüveg és sok víz kell.{% endif %}"
+    "{% if rain6 > 0.3 %} Vigyél esernyőt.{% endif %}"
+    "{% if wind > 8 %} Szeles is van.{% endif %}")
+
+REPLY_TEMP_OUT = "Kint {{ state_attr('__W__', 'temperature') | float(0) | round(1) | string | replace('.', ',') }} fok van.".replace("__W__", WEATHER)
+REPLY_TEMP_IN = ("A nappaliban {{ states('__L__') | float(0) | round(1) | string | replace('.', ',') }} fok, "
+                 "a hálószobában {{ states('__B__') | float(0) | round(1) | string | replace('.', ',') }} fok van."
+                 ).replace("__L__", TEMP_LIVING).replace("__B__", TEMP_BEDROOM)
+REPLY_TEMP_LIVING = "A nappaliban {{ states('__L__') | float(0) | round(1) | string | replace('.', ',') }} fok van.".replace("__L__", TEMP_LIVING)
+REPLY_TEMP_BEDROOM = "A hálószobában {{ states('__B__') | float(0) | round(1) | string | replace('.', ',') }} fok van.".replace("__B__", TEMP_BEDROOM)
+
+
+def forecasts() -> list:
+    """Fetch hourly + daily forecasts into the `hourly` / `daily` variables."""
+    return [
+        {"action": "weather.get_forecasts", "target": {"entity_id": WEATHER}, "data": {"type": kind}, "response_variable": var}
+        for kind, var in (("hourly", "hourly"), ("daily", "daily"))
+    ]
+
+
 def reply(text: str) -> dict:
     return {"set_conversation_response": text}
 
@@ -129,7 +209,8 @@ def app(app_id: str) -> dict:
 automation = {
     "alias": "Kiosk: TV hangparancsok",
     "description": "Magyar hangparancsok a Samsung TV-hez és a lámpákhoz (generálva: ha/scripts/gen_tv_voice.py)",
-    "mode": "single",
+    "mode": "queued",
+    "max": 5,
     "triggers": [{"trigger": "conversation", "command": s, "id": i} for i, s in SENTENCES.items()],
     "conditions": [],
     "actions": [
@@ -173,6 +254,12 @@ automation = {
                     for room, (entity, _, label) in LIGHTS.items()
                     for state in ("on", "off")
                 ],
+                branch("weather_now", *forecasts(), reply(REPLY_WEATHER)),
+                branch("clothes", *forecasts(), reply(REPLY_CLOTHES)),
+                branch("temp_out", reply(REPLY_TEMP_OUT)),
+                branch("temp_in", reply(REPLY_TEMP_IN)),
+                branch("temp_living", reply(REPLY_TEMP_LIVING)),
+                branch("temp_bedroom", reply(REPLY_TEMP_BEDROOM)),
                 branch("youtube", app("111299001912"), reply("Indítom a YouTube-ot")),
                 branch("netflix", app("3201907018807"), reply("Indítom a Netflixet")),
             ],

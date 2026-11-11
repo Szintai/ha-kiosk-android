@@ -1,7 +1,8 @@
 {
   "alias": "Kiosk: TV hangparancsok",
   "description": "Magyar hangparancsok a Samsung TV-hez és a lámpákhoz (generálva: ha/scripts/gen_tv_voice.py)",
-  "mode": "single",
+  "mode": "queued",
+  "max": 5,
   "triggers": [
     {
       "trigger": "conversation",
@@ -129,6 +130,64 @@
         "lámpák felgyújtása"
       ],
       "id": "lights_on"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "milyen idő van [kint|odakint]",
+        "milyen az idő [kint|odakint]",
+        "hogy van kint az idő",
+        "mi az időjárás",
+        "időjárás",
+        "milyen idő lesz [ma]"
+      ],
+      "id": "weather_now"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "hány fok van [kint|odakint]",
+        "hány fok van most",
+        "mennyi a hőmérséklet [kint|odakint]"
+      ],
+      "id": "temp_out"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "hány fok van (bent|odabent|a lakásban)",
+        "mennyi a hőmérséklet (bent|a lakásban)"
+      ],
+      "id": "temp_in"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "hány fok van a nappaliban",
+        "mennyi a hőmérséklet a nappaliban"
+      ],
+      "id": "temp_living"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "hány fok van a hálószobában",
+        "mennyi a hőmérséklet a hálószobában"
+      ],
+      "id": "temp_bedroom"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "milyen ruhát húzzak [fel]",
+        "milyen ruhát vegyek fel [ma]",
+        "mit vegyek fel [ma]",
+        "mit húzzak fel [ma]",
+        "hogyan öltözzek [fel]",
+        "milyen ruhában menjek",
+        "kell kabát"
+      ],
+      "id": "clothes"
     },
     {
       "trigger": "conversation",
@@ -558,6 +617,124 @@
             },
             {
               "set_conversation_response": "Lekapcsoltam a hálószoba lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "weather_now"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "weather.get_forecasts",
+              "target": {
+                "entity_id": "weather.home"
+              },
+              "data": {
+                "type": "hourly"
+              },
+              "response_variable": "hourly"
+            },
+            {
+              "action": "weather.get_forecasts",
+              "target": {
+                "entity_id": "weather.home"
+              },
+              "data": {
+                "type": "daily"
+              },
+              "response_variable": "daily"
+            },
+            {
+              "set_conversation_response": "{% set cond = {'sunny':'napos','clear-night':'tiszta az ég','partlycloudy':'részben felhős','cloudy':'felhős','fog':'ködös','rainy':'esős','pouring':'zuhog az eső','snowy':'havazik','snowy-rainy':'havas eső','lightning':'villámlik','lightning-rainy':'zivatar','hail':'jégeső','windy':'szeles','windy-variant':'szeles','exceptional':'rendkívüli az idő'} %}{% set t = state_attr('weather.home', 'temperature') | float(0) %}{% set d = daily['weather.home'].forecast[0] %}{% set tmax = d.temperature | float(t) %}{% set tmin = d.templow | float(t) %}{% set rain6 = hourly['weather.home'].forecast[:6] | map(attribute='precipitation') | map('float', 0) | sum %}{% set wind = state_attr('weather.home', 'wind_speed') | float(0) %}Kint {{ t | round(0) | int }} fok van, {{ cond.get(states('weather.home'), states('weather.home')) }}. A mai csúcs {{ tmax | round(0) | int }}, a minimum {{ tmin | round(0) | int }} fok.{% if rain6 > 0.3 %} A következő órákban eső várható.{% endif %}"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "clothes"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "weather.get_forecasts",
+              "target": {
+                "entity_id": "weather.home"
+              },
+              "data": {
+                "type": "hourly"
+              },
+              "response_variable": "hourly"
+            },
+            {
+              "action": "weather.get_forecasts",
+              "target": {
+                "entity_id": "weather.home"
+              },
+              "data": {
+                "type": "daily"
+              },
+              "response_variable": "daily"
+            },
+            {
+              "set_conversation_response": "{% set t = state_attr('weather.home', 'temperature') | float(0) %}{% set d = daily['weather.home'].forecast[0] %}{% set tmax = d.temperature | float(t) %}{% set tmin = d.templow | float(t) %}{% set rain6 = hourly['weather.home'].forecast[:6] | map(attribute='precipitation') | map('float', 0) | sum %}{% set wind = state_attr('weather.home', 'wind_speed') | float(0) %}{% set eff = (t + tmax) / 2 - (2 if wind > 8 else 0) %}Kint {{ t | round(0) | int }} fok van, ma legfeljebb {{ tmax | round(0) | int }} lesz. {% if eff <= 0 %}Fagyos idő van: télikabát, sapka, sál és kesztyű kell.{% elif eff <= 7 %}Hideg van: vegyél fel meleg kabátot, sálat és sapkát.{% elif eff <= 14 %}Hűvös van: kabát vagy vastagabb dzseki és hosszú nadrág kell.{% elif eff <= 19 %}Enyhe idő van: egy pulóver vagy könnyű dzseki elég.{% elif eff <= 24 %}Kellemes idő van: hosszú ujjú vagy póló, könnyű nadrág.{% elif eff <= 29 %}Meleg van: póló és rövidnadrág is jó.{% else %}Nagyon meleg van: könnyű, szellős ruha, napszemüveg és sok víz kell.{% endif %}{% if rain6 > 0.3 %} Vigyél esernyőt.{% endif %}{% if wind > 8 %} Szeles is van.{% endif %}"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "temp_out"
+            }
+          ],
+          "sequence": [
+            {
+              "set_conversation_response": "Kint {{ state_attr('weather.home', 'temperature') | float(0) | round(1) | string | replace('.', ',') }} fok van."
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "temp_in"
+            }
+          ],
+          "sequence": [
+            {
+              "set_conversation_response": "A nappaliban {{ states('sensor.sonoff_snzb_02d_temperature_2') | float(0) | round(1) | string | replace('.', ',') }} fok, a hálószobában {{ states('sensor.sonoff_snzb_02d_temperature') | float(0) | round(1) | string | replace('.', ',') }} fok van."
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "temp_living"
+            }
+          ],
+          "sequence": [
+            {
+              "set_conversation_response": "A nappaliban {{ states('sensor.sonoff_snzb_02d_temperature_2') | float(0) | round(1) | string | replace('.', ',') }} fok van."
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "temp_bedroom"
+            }
+          ],
+          "sequence": [
+            {
+              "set_conversation_response": "A hálószobában {{ states('sensor.sonoff_snzb_02d_temperature') | float(0) | round(1) | string | replace('.', ',') }} fok van."
             }
           ]
         },
