@@ -1,0 +1,2077 @@
+{
+  "title": "Kiosk",
+  "views": [
+    {
+      "title": "Kiosk",
+      "path": "home",
+      "type": "sections",
+      "max_columns": 4,
+      "sections": [
+        {
+          "type": "grid",
+          "column_span": 4,
+          "cards": [
+            {
+              "type": "custom:kiosk-weather",
+              "entity": "weather.home",
+              "title": "Pécs",
+              "hours": 24,
+              "days": 7,
+              "grid_options": {
+                "columns": "full"
+              }
+            },
+            {
+              "type": "custom:kiosk-dock",
+              "climate": [
+                {
+                  "name": "Nappali",
+                  "t": "sensor.sonoff_snzb_02d_temperature_2",
+                  "h": "sensor.sonoff_snzb_02d_humidity_2"
+                },
+                {
+                  "name": "Hálószoba",
+                  "t": "sensor.sonoff_snzb_02d_temperature",
+                  "h": "sensor.sonoff_snzb_02d_humidity"
+                }
+              ],
+              "lights": [
+                "light.haloszoba_lampa",
+                "light.aqara_lumi_light_agl004"
+              ],
+              "tv": {
+                "entity": "media_player.samsung_au7022_55_tv_ue55au7022kxxh",
+                "hash": "#tv"
+              },
+              "grid_options": {
+                "columns": "full"
+              }
+            },
+            {
+              "type": "custom:bubble-card",
+              "card_type": "pop-up",
+              "hash": "#tv",
+              "name": "Samsung TV",
+              "icon": "mdi:remote-tv",
+              "entity": "media_player.samsung_au7022_55_tv_ue55au7022kxxh",
+              "cards": [
+                {
+                  "type": "grid",
+                  "columns": 3,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "custom:mushroom-empty-card"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-up",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_UP"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "56px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:mushroom-empty-card"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-left",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_LEFT"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "56px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:circle-medium",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_ENTER"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "rgba(10,132,255,.14)"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "56px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "#0a84ff"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-right",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_RIGHT"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "56px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:mushroom-empty-card"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-down",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_DOWN"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "56px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:mushroom-empty-card"
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "columns": 4,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:arrow-left",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_RETURN"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Vissza"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:home-outline",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_HOME"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Főmenü"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:import",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_SOURCE"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Forrás"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:power",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "media_player.toggle",
+                        "target": {
+                          "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Ki/Be"
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "columns": 2,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:volume-plus",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_VOLUP"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Hang +"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-up",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_CHUP"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Csat. +"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:volume-off",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_MUTE"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Némítás"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:format-list-numbered",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_CH_LIST"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Lista"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:volume-minus",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_VOLDOWN"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Hang −"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:chevron-down",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_CHDOWN"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Csat. −"
+                    }
+                  ]
+                },
+                {
+                  "type": "grid",
+                  "columns": 4,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:rewind",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_REWIND"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "44px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:play-pause",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_PLAY"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "44px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:stop",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_STOP"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "44px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:fast-forward",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": false,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_FF"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "44px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "heading",
+                  "heading": "További műveletek",
+                  "heading_style": "subtitle"
+                },
+                {
+                  "type": "grid",
+                  "columns": 3,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:menu",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_MENU"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Menü"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:information-outline",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_INFO"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Infó"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:television-guide",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_GUIDE"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Műsorújság"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:tools",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_TOOLS"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Eszközök"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:format-list-numbered",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_CH_LIST"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Csatornalista"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:import",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_SOURCE"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Bemenet"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:video-input-hdmi",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_HDMI"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "HDMI"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:subtitles-outline",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_SUBTITLE"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Felirat"
+                    },
+                    {
+                      "type": "custom:button-card",
+                      "icon": "mdi:account-voice",
+                      "show_icon": true,
+                      "show_state": false,
+                      "show_name": true,
+                      "tap_action": {
+                        "action": "perform-action",
+                        "perform_action": "remote.send_command",
+                        "target": {
+                          "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+                        },
+                        "data": {
+                          "command": "KEY_AD"
+                        }
+                      },
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "var(--o-soft, rgba(128,128,128,.12))"
+                          },
+                          {
+                            "border-radius": "16px"
+                          },
+                          {
+                            "border": "none"
+                          },
+                          {
+                            "box-shadow": "none"
+                          },
+                          {
+                            "height": "60px"
+                          },
+                          {
+                            "padding": "0"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "width": "22px"
+                          },
+                          {
+                            "color": "var(--primary-text-color)"
+                          },
+                          {
+                            "opacity": ".85"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "font-size": "11px"
+                          },
+                          {
+                            "margin-top": "3px"
+                          },
+                          {
+                            "opacity": ".7"
+                          },
+                          {
+                            "font-weight": "500"
+                          }
+                        ],
+                        "grid": [
+                          {
+                            "grid-template-areas": "\"i\" \"n\""
+                          },
+                          {
+                            "grid-template-rows": "1fr min-content"
+                          }
+                        ]
+                      },
+                      "name": "Hangleírás"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

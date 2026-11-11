@@ -1,0 +1,15 @@
+*.iml
+.gradle/
+.idea/
+.kotlin/
+local.properties
+build/
+captures/
+*.apk
+*.aab
+*.jks
+*.keystore
+.DS_Store
+# Secrets must never be committed
+secrets.properties
+__pycache__/
