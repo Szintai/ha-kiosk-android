@@ -32,6 +32,9 @@ class DataStoreConfigRepository @Inject constructor(
             prefs[VOICE_MODE] = next.voiceMode.key
             prefs[VOICE_WAKE_PHRASE] = next.voiceWakePhrase
             prefs[VOICE_SPEAK] = next.voiceSpeak
+            prefs[CAMERA_SHARE] = next.cameraShare
+            prefs[CAMERA_PORT] = next.cameraPort
+            prefs[CAMERA_TOKEN] = next.cameraToken
             prefs[VOICE_LANGUAGE] = next.voiceLanguage
         }
     }
@@ -52,6 +55,9 @@ class DataStoreConfigRepository @Inject constructor(
                 ?: if (this[VOICE_ENABLED] == true) VoiceMode.OnWake else d.voiceMode,
             voiceWakePhrase = this[VOICE_WAKE_PHRASE] ?: d.voiceWakePhrase,
             voiceSpeak = this[VOICE_SPEAK] ?: d.voiceSpeak,
+            cameraShare = this[CAMERA_SHARE] ?: d.cameraShare,
+            cameraPort = this[CAMERA_PORT] ?: d.cameraPort,
+            cameraToken = this[CAMERA_TOKEN] ?: d.cameraToken,
             voiceLanguage = this[VOICE_LANGUAGE] ?: d.voiceLanguage,
         )
     }
@@ -69,6 +75,9 @@ class DataStoreConfigRepository @Inject constructor(
         val VOICE_MODE = stringPreferencesKey("voice_mode")
         val VOICE_WAKE_PHRASE = stringPreferencesKey("voice_wake_phrase")
         val VOICE_SPEAK = booleanPreferencesKey("voice_speak")
+        val CAMERA_SHARE = booleanPreferencesKey("camera_share")
+        val CAMERA_PORT = intPreferencesKey("camera_port")
+        val CAMERA_TOKEN = stringPreferencesKey("camera_token")
         val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
     }
 }

@@ -10,8 +10,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,9 +20,14 @@ import javax.inject.Singleton
 
 /**
  * Reports to Home Assistant through the built-in `mobile_app` integration: the tablet registers
- * itself once (with the long-lived token) and then only talks to its own webhook. Entities:
- *  - `sensor.kiosk_tablet_wake_count`   (total_increasing, so HA keeps long-term statistics)
- *  - `binary_sensor.kiosk_tablet_presence`
+ * itself once (with the long-lived token) and then only talks to its own webhook. Entities
+ * (device "Kiosk Tablet"):
+ *  - `sensor.kiosk_tablet_wake_count`          total_increasing, long-term statistics
+ *  - `binary_sensor.kiosk_tablet_presence`     on = display active, off = dimmed
+ *  - `sensor.kiosk_tablet_battery_level`       %
+ *  - `binary_sensor.kiosk_tablet_battery_charging`
+ *  - `sensor.kiosk_tablet_battery_temperature` °C
+ *  - `sensor.kiosk_tablet_ip_address`          attributes carry the camera URLs when sharing is on
  */
 @Singleton
 class MobileAppHaReporter @Inject constructor(
@@ -32,15 +37,18 @@ class MobileAppHaReporter @Inject constructor(
     @ApplicationScope scope: CoroutineScope,
 ) : HaReporter {
 
-    private val latest = MutableStateFlow<PresenceSnapshot?>(null)
+    private data class Report(val presence: PresenceSnapshot? = null, val device: DeviceStatus? = null)
+
+    private val latest = MutableStateFlow(Report())
 
     init {
         scope.launch {
-            latest.filterNotNull().collectLatest { snapshot ->
-                // collectLatest cancels the retry wait as soon as a newer snapshot arrives.
+            latest.collectLatest { report ->
+                if (report.presence == null && report.device == null) return@collectLatest
+                // collectLatest cancels the retry wait as soon as newer values arrive.
                 while (true) {
                     try {
-                        send(snapshot)
+                        send(report)
                         break
                     } catch (e: Exception) {
                         Log.w(TAG, "HA report failed, retrying: ${e.message}")
@@ -51,11 +59,11 @@ class MobileAppHaReporter @Inject constructor(
         }
     }
 
-    override fun update(snapshot: PresenceSnapshot) {
-        latest.value = snapshot
-    }
+    override fun update(snapshot: PresenceSnapshot) = latest.update { it.copy(presence = snapshot) }
 
-    private suspend fun send(snapshot: PresenceSnapshot) {
+    override fun updateDevice(status: DeviceStatus) = latest.update { it.copy(device = status) }
+
+    private suspend fun send(report: Report) {
         val config = configRepository.config.first()
         if (!config.isConfigured || !config.reportToHa) return
 
@@ -65,12 +73,12 @@ class MobileAppHaReporter @Inject constructor(
         }
         val webhook = "${config.haUrl.trimEnd('/')}/api/webhook/${registration.webhookId}"
 
-        if (!registration.sensorsRegistered) {
-            registerSensors(webhook, snapshot)
-            store.markSensorsRegistered()
+        if (registration.sensorsVersion < SENSORS_VERSION) {
+            registerSensors(webhook, report)
+            store.markSensorsRegistered(SENSORS_VERSION)
             return
         }
-        val response = api.postJson(webhook, null, request("update_sensor_states", sensorStates(snapshot)))
+        val response = api.postJson(webhook, null, request("update_sensor_states", sensorStates(report)))
         if (response.code == HTTP_GONE) { // webhook removed in HA -> register again
             store.clearRegistration()
             throw IllegalStateException("webhook gone, re-registering")
@@ -98,24 +106,67 @@ class MobileAppHaReporter @Inject constructor(
         return webhookId
     }
 
-    private suspend fun registerSensors(webhook: String, snapshot: PresenceSnapshot) {
-        val wake = JSONObject()
-            .put("unique_id", WAKE_COUNT).put("name", "Wake count").put("type", "sensor")
-            .put("state", snapshot.wakeCount).put("state_class", "total_increasing")
-            .put("icon", "mdi:motion-sensor")
-        val presence = JSONObject()
-            .put("unique_id", PRESENCE).put("name", "Presence").put("type", "binary_sensor")
-            .put("state", snapshot.present).put("device_class", "occupancy")
-            .put("icon", "mdi:account-eye")
-        for (sensor in listOf(wake, presence)) {
+    /** Registers (or re-registers, which updates) every sensor, with the current values as initial state. */
+    private suspend fun registerSensors(webhook: String, report: Report) {
+        val p = report.presence ?: PresenceSnapshot(0, true)
+        val d = report.device
+        val sensors = listOf(
+            JSONObject().put("unique_id", WAKE_COUNT).put("name", "Wake count").put("type", "sensor")
+                .put("state", p.wakeCount).put("state_class", "total_increasing").put("icon", "mdi:motion-sensor"),
+            JSONObject().put("unique_id", PRESENCE).put("name", "Presence").put("type", "binary_sensor")
+                .put("state", p.present).put("device_class", "occupancy").put("icon", "mdi:account-eye"),
+            JSONObject().put("unique_id", BATTERY_LEVEL).put("name", "Battery level").put("type", "sensor")
+                .put("state", d?.batteryLevel ?: 0).put("device_class", "battery").put("unit_of_measurement", "%")
+                .put("state_class", "measurement").put("entity_category", "diagnostic"),
+            JSONObject().put("unique_id", BATTERY_CHARGING).put("name", "Battery charging").put("type", "binary_sensor")
+                .put("state", d?.charging ?: false).put("device_class", "battery_charging").put("entity_category", "diagnostic"),
+            JSONObject().put("unique_id", BATTERY_TEMP).put("name", "Battery temperature").put("type", "sensor")
+                .put("state", d?.batteryTempC ?: 0f).put("device_class", "temperature").put("unit_of_measurement", "°C")
+                .put("state_class", "measurement").put("entity_category", "diagnostic"),
+            JSONObject().put("unique_id", IP_ADDRESS).put("name", "IP address").put("type", "sensor")
+                .put("state", d?.ip ?: "unknown").put("icon", "mdi:ip-network").put("entity_category", "diagnostic")
+                .put("attributes", ipAttributes(d)),
+        )
+        for (sensor in sensors) {
             val response = api.postJson(webhook, null, request("register_sensor", sensor))
             check(response.ok) { "register_sensor ${sensor.getString("unique_id")} -> ${response.code}" }
         }
     }
 
-    private fun sensorStates(snapshot: PresenceSnapshot): JSONArray = JSONArray()
-        .put(JSONObject().put("unique_id", WAKE_COUNT).put("type", "sensor").put("state", snapshot.wakeCount).put("icon", "mdi:motion-sensor"))
-        .put(JSONObject().put("unique_id", PRESENCE).put("type", "binary_sensor").put("state", snapshot.present).put("icon", "mdi:account-eye"))
+    private fun sensorStates(report: Report): JSONArray {
+        val states = JSONArray()
+        report.presence?.let { p ->
+            states.put(JSONObject().put("unique_id", WAKE_COUNT).put("type", "sensor").put("state", p.wakeCount).put("icon", "mdi:motion-sensor"))
+            states.put(JSONObject().put("unique_id", PRESENCE).put("type", "binary_sensor").put("state", p.present).put("icon", "mdi:account-eye"))
+        }
+        report.device?.let { d ->
+            states.put(JSONObject().put("unique_id", BATTERY_LEVEL).put("type", "sensor").put("state", d.batteryLevel)
+                .put("icon", batteryIcon(d.batteryLevel, d.charging)))
+            states.put(JSONObject().put("unique_id", BATTERY_CHARGING).put("type", "binary_sensor").put("state", d.charging)
+                .put("attributes", JSONObject().put("charger", d.charger)))
+            d.batteryTempC?.let {
+                states.put(JSONObject().put("unique_id", BATTERY_TEMP).put("type", "sensor").put("state", it))
+            }
+            states.put(JSONObject().put("unique_id", IP_ADDRESS).put("type", "sensor").put("state", d.ip ?: "unknown")
+                .put("attributes", ipAttributes(d)))
+        }
+        return states
+    }
+
+    private fun ipAttributes(d: DeviceStatus?) = JSONObject().apply {
+        put("camera_stream_url", d?.cameraStreamUrl ?: JSONObject.NULL)
+        put("camera_snapshot_url", d?.cameraSnapshotUrl ?: JSONObject.NULL)
+    }
+
+    private fun batteryIcon(level: Int, charging: Boolean): String {
+        val step = (level / 10) * 10
+        return when {
+            charging -> "mdi:battery-charging-${step.coerceIn(10, 100)}".takeIf { level >= 10 } ?: "mdi:battery-charging-outline"
+            level >= 95 -> "mdi:battery"
+            level < 10 -> "mdi:battery-outline"
+            else -> "mdi:battery-$step"
+        }
+    }
 
     private fun request(type: String, data: Any): JSONObject = JSONObject().put("type", type).put("data", data)
 
@@ -124,6 +175,11 @@ class MobileAppHaReporter @Inject constructor(
         const val DEVICE_NAME = "Kiosk Tablet"
         const val WAKE_COUNT = "wake_count"
         const val PRESENCE = "presence"
+        const val BATTERY_LEVEL = "battery_level"
+        const val BATTERY_CHARGING = "battery_charging"
+        const val BATTERY_TEMP = "battery_temperature"
+        const val IP_ADDRESS = "ip_address"
+        const val SENSORS_VERSION = 2
         const val RETRY_MS = 30_000L
         const val HTTP_GONE = 410
     }

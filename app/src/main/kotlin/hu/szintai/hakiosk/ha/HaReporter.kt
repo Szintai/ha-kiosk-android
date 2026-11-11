@@ -9,6 +9,8 @@ data class PresenceSnapshot(
 )
 
 interface HaReporter {
-    /** Fire and forget; the implementation retries and only keeps the latest snapshot. */
+    /** Fire and forget; the implementation retries and only keeps the latest values. */
     fun update(snapshot: PresenceSnapshot)
+
+    fun updateDevice(status: DeviceStatus)
 }

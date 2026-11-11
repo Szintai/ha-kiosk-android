@@ -26,6 +26,11 @@ data class AppConfig(
     val voiceSpeak: Boolean = true,
     /** BCP-47 tag for speech recognition; the HA conversation language is its first part. */
     val voiceLanguage: String = "hu-HU",
+    /** Serve the front camera over HTTP, only while Home Assistant (or a browser) is actually watching. */
+    val cameraShare: Boolean = false,
+    val cameraPort: Int = 8099,
+    /** Shared secret in the stream URL (`?t=...`); generated on first enable. */
+    val cameraToken: String = "",
 ) {
     val voiceEnabled: Boolean get() = voiceMode != VoiceMode.Off
 

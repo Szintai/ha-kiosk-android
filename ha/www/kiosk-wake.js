@@ -1,14 +1,26 @@
-/* kiosk-wake — wake-up statistics of the kiosk tablet, in the Otthon design language (--o-* tokens).
- *   kiosk-wake-tile  : small card, today's count + 24 h mini bars; tap -> navigates to a pop-up hash
- *   kiosk-wake-chart : modal content, 24 h / 7 day bars + latest wake-ups
- * Source: a total_increasing counter (sensor.kiosk_tablet_wake_count). Every increase of the
- * counter in the recorder history is one (or more) wake-up(s) at that timestamp. */
+/* kiosk-wake — status, wake-up statistics and on-demand camera of the kiosk tablet, in the Otthon
+ * design language (--o-* tokens).
+ *   kiosk-wake-tile  : small card: today's wake-ups, screen state, battery; tap -> opens the pop-up hash
+ *   kiosk-wake-chart : modal content: state + battery, 24 h / 7 day wake bars, wake/dim log, camera
+ *
+ * Config (both cards): entity (wake counter), presence, battery, charging, temp, camera.
+ * Wake-ups = every increase of the total_increasing counter in the recorder history. The screen log is
+ * every on/off change of the presence binary sensor (on = awake, off = dimmed).
+ * The camera is only streamed while the "Kamera" button has been pressed (and the modal is visible). */
 const FONT = `"Inter","SF Pro Display",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif`;
-const ORANGE = "#ff9f0a";
+const ORANGE = "#ff9f0a", GREEN = "#30d158", RED = "#ff453a";
 const DAY = 86400e3, HOUR = 3600e3;
 const pad = (n) => String(n).padStart(2, "0");
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const hhmm = (t) => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const dayLabel = (t) => {
+  const today = startOfDay(Date.now());
+  if (t >= today) return "ma";
+  if (t >= today - DAY) return "tegnap";
+  return new Date(t).toLocaleDateString("hu-HU", { month: "numeric", day: "numeric" });
+};
 const ICON = `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"/></svg>`;
+const BOLT = `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`;
+const BATT = (pct, charging) => `<svg viewBox="0 0 28 14" width="1.8em" height="0.9em"><rect x="1" y="1" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".7"/><rect x="25" y="4.5" width="2" height="5" rx="1" fill="currentColor" opacity=".7"/><rect x="3" y="3" width="${Math.max(1, Math.round(19 * pct / 100))}" height="8" rx="2" fill="${charging ? GREEN : pct <= 15 ? RED : "currentColor"}"/></svg>`;
 
 const BASE_CSS = `
 :host{display:block;font-family:${FONT};color:var(--o-ink,#111113);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1,"cv11" 1}
@@ -20,22 +32,31 @@ svg{display:block}`;
 
 /* ---- data ------------------------------------------------------------- */
 const startOfDay = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const tsOf = (r) => { const ts = r.lu ?? r.last_updated ?? r.lc; return typeof ts === "number" ? ts * 1000 : new Date(ts).getTime(); };
 
-/** [{t, n}] wake events within the last 7 days, derived from the counter history. */
-async function loadEvents(hass, entity) {
-  const end = Date.now(), start = end - 7 * DAY;
+async function history(hass, entity, days = 7) {
+  const end = Date.now(), start = end - days * DAY;
   const res = await hass.callWS({ type: "history/history_during_period", start_time: new Date(start).toISOString(), end_time: new Date(end).toISOString(),
     entity_ids: [entity], minimal_response: true, no_attributes: true, significant_changes_only: false });
-  const rows = res[entity] || [];
-  const out = [];
-  let prev = null;
-  for (const r of rows) {
-    const v = parseFloat(r.s ?? r.state);
-    if (!Number.isFinite(v)) continue;
-    const ts = r.lu ?? r.last_updated ?? r.lc;
-    const t = typeof ts === "number" ? ts * 1000 : new Date(ts).getTime();
-    if (prev != null && v > prev) out.push({ t, n: v - prev });
+  return res[entity] || [];
+}
+/** [{t, n}] wake-ups from the counter history. */
+async function loadWakes(hass, entity) {
+  const out = []; let prev = null;
+  for (const r of await history(hass, entity)) {
+    const v = parseFloat(r.s ?? r.state); if (!Number.isFinite(v)) continue;
+    if (prev != null && v > prev) out.push({ t: tsOf(r), n: v - prev });
     prev = v;
+  }
+  return out;
+}
+/** [{t, on}] display awake/dimmed changes from the presence sensor history (first state is only the baseline). */
+async function loadScreenLog(hass, entity) {
+  const out = []; let prev = null;
+  for (const r of await history(hass, entity)) {
+    const s = r.s ?? r.state; if (s !== "on" && s !== "off") continue;
+    if (prev != null && s !== prev) out.push({ t: tsOf(r), on: s === "on" });
+    prev = s;
   }
   return out;
 }
@@ -52,21 +73,40 @@ function dayBuckets(ev) {
   for (const e of ev) { const i = Math.floor((startOfDay(e.t) - base) / DAY); if (i >= 0 && i < 7) b[i].n += e.n; }
   return b;
 }
+const num = (s) => { const v = parseFloat(s?.state); return Number.isFinite(v) ? v : null; };
 
 class KBase extends HTMLElement {
-  constructor() { super(); this.attachShadow({ mode: "open" }); this._cfg = null; this._hass = null; this._ev = []; this._sig = null; }
+  constructor() { super(); this.attachShadow({ mode: "open" }); this._cfg = null; this._hass = null; this._ev = []; this._screen = []; this._sig = null; }
   setConfig(c) { if (!c.entity) throw new Error("entity is required"); this._cfg = { ...c }; this._build(); this._draw(); }
   set hass(h) {
     this._hass = h;
-    const s = h.states?.[this._cfg?.entity]?.state;
-    if (this._cfg && s !== this._sig) { this._sig = s; this._load(); }
+    if (!this._cfg) return;
+    const c = this._cfg, st = (id) => h.states?.[id]?.state;
+    const sig = [c.entity, c.presence, c.battery, c.charging, c.temp, c.camera].map(st).join("|");
+    if (sig !== this._sig) { this._sig = sig; this._load(); this._draw(); }
   }
   getGridOptions() { return { columns: 12, min_columns: 6 }; }
   connectedCallback() { this._timer = setInterval(() => this._load(), 5 * 60e3); if (this._hass) this._load(); }
   disconnectedCallback() { clearInterval(this._timer); }
+  st(id) { return id ? this._hass?.states?.[id] : undefined; }
   async _load() {
     if (!this._hass || !this._cfg) return;
-    try { this._ev = await loadEvents(this._hass, this._cfg.entity); this._draw(); } catch (e) { /* recorder not ready */ }
+    try {
+      this._ev = await loadWakes(this._hass, this._cfg.entity);
+      if (this._cfg.presence) this._screen = await loadScreenLog(this._hass, this._cfg.presence);
+      this._draw();
+    } catch (e) { /* recorder not ready */ }
+  }
+  /** {awake, since} of the display, null if unknown. */
+  screen() {
+    const s = this.st(this._cfg.presence);
+    if (!s || (s.state !== "on" && s.state !== "off")) return null;
+    return { awake: s.state === "on", since: new Date(s.last_changed).getTime() };
+  }
+  battery() {
+    const lvl = num(this.st(this._cfg.battery));
+    if (lvl == null) return null;
+    return { level: Math.round(lvl), charging: this.st(this._cfg.charging)?.state === "on", temp: num(this.st(this._cfg.temp)) };
   }
 }
 
@@ -79,12 +119,18 @@ class KWakeTile extends KBase {
       .l{font-size:12.5px;font-weight:600;color:var(--o-mute,#8a8a90)}
       .n{font-size:34px;font-weight:300;letter-spacing:-.03em;line-height:1.05;margin-top:1px}
       .s{font-size:12px;color:var(--o-mute,#8a8a90);margin-top:1px}
+      .pills{display:flex;gap:8px;margin-top:7px;flex-wrap:wrap}
+      .pill{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 8px;border-radius:12px;background:var(--o-soft,#f0f0f3);font-size:11.5px;font-weight:600}
+      .dot{width:8px;height:8px;border-radius:50%;background:var(--o-mute,#8a8a90)}
+      .dot.on{background:${GREEN};box-shadow:0 0 0 3px rgba(48,209,88,.18)}
+      .pill .b{font-size:13px;display:flex;align-items:center;gap:3px}
+      .pill .c{color:${GREEN};font-size:11px}
       .mini{margin-left:auto;display:flex;align-items:flex-end;gap:2px;height:38px}
       .mini i{display:block;width:4px;border-radius:2px;background:${ORANGE};min-height:2px;opacity:.9}
       .mini i.z{background:var(--o-line,rgba(0,0,0,.1));opacity:1}
       .card:active{transform:scale(.985)}
     </style>
-    <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div></div><div class="mini"></div></button>`;
+    <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div></button>`;
     this.shadowRoot.querySelector(".card").addEventListener("click", () => {
       history.pushState(null, "", this._cfg.hash || "#wakes");
       window.dispatchEvent(new CustomEvent("location-changed"));
@@ -94,23 +140,34 @@ class KWakeTile extends KBase {
     const r = this.shadowRoot; if (!r.querySelector(".n")) return;
     const today = startOfDay(Date.now());
     const todayN = sum(this._ev.filter((e) => e.t >= today));
-    const total = parseFloat(this._hass?.states?.[this._cfg.entity]?.state);
-    r.querySelector(".l").textContent = this._cfg.name || "Tablet ébredések";
+    const total = parseFloat(this.st(this._cfg.entity)?.state);
+    r.querySelector(".l").textContent = this._cfg.name || "Tablet";
     r.querySelector(".n").textContent = String(todayN);
-    r.querySelector(".s").textContent = `ma${Number.isFinite(total) ? ` · ${total} összesen` : ""}`;
+    r.querySelector(".s").textContent = `ébredés ma${Number.isFinite(total) ? ` · ${total} összesen` : ""}`;
+    const scr = this.screen(), bat = this.battery();
+    r.querySelector(".pills").innerHTML =
+      (scr ? `<div class="pill"><span class="dot${scr.awake ? " on" : ""}"></span>${scr.awake ? "Ébren" : "Alszik"} <span class="mute" style="font-weight:500">${hhmm(scr.since)}</span></div>` : "") +
+      (bat ? `<div class="pill"><span class="b">${BATT(bat.level, bat.charging)}</span>${bat.level} %${bat.charging ? ` <span class="c">${BOLT}</span>` : ""}</div>` : "");
     const b = hourBuckets(this._ev), max = Math.max(1, ...b.map((x) => x.n));
     r.querySelector(".mini").innerHTML = b.map((x) => `<i class="${x.n ? "" : "z"}" style="height:${x.n ? 8 + (x.n / max) * 30 : 2}px"></i>`).join("");
   }
 }
 if (!customElements.get("kiosk-wake-tile")) customElements.define("kiosk-wake-tile", KWakeTile);
 
-/* ================================================================== chart */
+/* ================================================================== chart / modal */
 class KWakeChart extends KBase {
   _build() {
-    this._mode = "h"; this._sel = null;
+    this._mode = "h"; this._sel = null; this._camOpen = false;
     this.shadowRoot.innerHTML = `<style>${BASE_CSS}
       .card{padding:18px 20px 16px;box-shadow:none;background:transparent}
-      .row{display:flex;align-items:center;justify-content:space-between}
+      .stat{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+      .box{background:var(--o-soft,#f0f0f3);border-radius:18px;padding:12px 14px}
+      .box .k{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--o-mute,#8a8a90)}
+      .box .v{font-size:22px;font-weight:600;margin-top:4px;display:flex;align-items:center;gap:8px}
+      .box .d{font-size:12.5px;color:var(--o-mute,#8a8a90);margin-top:2px}
+      .dot{width:10px;height:10px;border-radius:50%;background:var(--o-mute,#8a8a90);flex:none}
+      .dot.on{background:${GREEN};box-shadow:0 0 0 4px rgba(48,209,88,.18)}
+      .row{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
       .big{font-size:56px;font-weight:300;letter-spacing:-.04em;line-height:1}
       .big small{font-size:15px;font-weight:500;color:var(--o-mute,#8a8a90);letter-spacing:0;margin-left:6px}
       .seg{display:flex;background:var(--o-soft,#f0f0f3);border-radius:11px;padding:3px}
@@ -125,20 +182,29 @@ class KWakeChart extends KBase {
       .b em{font-style:normal;font-size:11px;font-weight:700;margin-bottom:3px;color:${ORANGE}}
       .ax{display:flex;gap:var(--gap,4px);margin-top:6px;font-size:11px;color:var(--o-mute,#8a8a90)}
       .ax span{flex:1;text-align:center;white-space:nowrap;overflow:visible}
-      .sec{font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--o-mute,#8a8a90);margin:18px 0 8px}
+      .sec{font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--o-mute,#8a8a90);margin:20px 0 8px}
       .list{display:flex;flex-direction:column}
       .li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--o-line,rgba(0,0,0,.08));font-size:14px}
       .li:first-child{border-top:0}
       .li .d{width:8px;height:8px;border-radius:50%;background:${ORANGE}}
+      .li .d.off{background:var(--o-mute,#8a8a90)}
       .li .t{font-weight:600}.li .w{margin-left:auto;color:var(--o-mute,#8a8a90);font-size:12.5px}
       .none{color:var(--o-mute,#8a8a90);font-size:13px;padding:6px 0}
+      .cam{margin-top:6px}
+      .camBtn{width:100%;padding:13px 16px;border-radius:16px;background:var(--o-soft,#f0f0f3);font-size:14px;font-weight:600;text-align:center}
+      .camBtn.stop{background:rgba(255,69,58,.14);color:${RED}}
+      .camBox{margin-top:10px;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:4/3;display:grid;place-items:center}
+      .camBox img{width:100%;height:100%;object-fit:contain;display:block}
+      .camNote{font-size:12px;color:var(--o-mute,#8a8a90);margin-top:8px}
     </style>
     <div class="card">
+      <div class="stat"></div>
       <div class="row"><div class="big"><span class="tot">0</span><small class="cap"></small></div>
         <div class="seg"><button data-m="h" class="on">24 óra</button><button data-m="d">7 nap</button></div></div>
       <div class="read"></div>
       <div class="bars"></div><div class="ax"></div>
-      <div class="sec">Utolsó ébredések</div><div class="list"></div>
+      <div class="sec">Ébredések és elsötétülések</div><div class="log list"></div>
+      <div class="sec cam-sec">Kamera</div><div class="cam"></div>
     </div>`;
     const r = this.shadowRoot;
     r.querySelectorAll(".seg button").forEach((bt) => bt.addEventListener("click", () => {
@@ -150,9 +216,51 @@ class KWakeChart extends KBase {
       const b = e.target.closest(".b"); if (!b) return;
       this._sel = this._sel === +b.dataset.i ? null : +b.dataset.i; this._draw();
     });
+    r.querySelector(".cam").addEventListener("click", (e) => {
+      if (e.target.closest(".camBtn")) { this._camOpen ? this._stopCam() : this._startCam(); }
+    });
   }
+  disconnectedCallback() { super.disconnectedCallback(); this._stopCam(); }
+
+  _camUrl() {
+    const id = this._cfg.camera, s = this.st(id);
+    return s && s.attributes.access_token ? `/api/camera_proxy_stream/${id}?token=${s.attributes.access_token}` : null;
+  }
+  _startCam() {
+    if (!this._camUrl()) return;
+    this._camOpen = true; this._drawCam();
+    // Stop streaming when the modal is closed (not visible) or after 3 minutes.
+    this._camGuard = setInterval(() => { if (!this.isConnected || this.offsetParent === null) this._stopCam(); }, 1000);
+    this._camTimeout = setTimeout(() => this._stopCam(), 3 * 60e3);
+  }
+  _stopCam() {
+    clearInterval(this._camGuard); clearTimeout(this._camTimeout);
+    if (!this._camOpen) return;
+    this._camOpen = false; this._drawCam();
+  }
+  _drawCam() {
+    const el = this.shadowRoot.querySelector(".cam"); if (!el) return;
+    const sec = this.shadowRoot.querySelector(".cam-sec");
+    if (!this._cfg.camera) { sec.style.display = "none"; el.innerHTML = ""; return; }
+    const url = this._camUrl();
+    if (!url) { el.innerHTML = `<div class="none">A kamera nincs bekapcsolva a tableten (Beállítások → Kamerakép megosztása), vagy a Home Assistant entitás még nem készült el.</div>`; return; }
+    if (!this._camOpen) {
+      el.innerHTML = `<button class="camBtn">Kamerakép megnyitása</button><div class="camNote">Csak a megnyitás idejére streamel, bezáráskor leáll.</div>`;
+    } else {
+      el.innerHTML = `<button class="camBtn stop">Bezárás</button><div class="camBox"><img alt="Kamera" src="${url}"></div>`;
+    }
+  }
+
   _draw() {
     const r = this.shadowRoot; if (!r.querySelector(".bars")) return;
+    // --- status boxes
+    const scr = this.screen(), bat = this.battery();
+    const boxes = [];
+    if (scr) boxes.push(`<div class="box"><div class="k">Képernyő</div><div class="v"><span class="dot${scr.awake ? " on" : ""}"></span>${scr.awake ? "Ébren" : "Alszik"}</div><div class="d">${dayLabel(scr.since)} ${hhmm(scr.since)} óta</div></div>`);
+    if (bat) boxes.push(`<div class="box"><div class="k">Akkumulátor</div><div class="v">${BATT(bat.level, bat.charging)} ${bat.level} %${bat.charging ? ` <span style="color:${GREEN};font-size:15px">${BOLT}</span>` : ""}</div><div class="d">${bat.charging ? "Töltőn van" : "Nincs töltőn"}${bat.temp != null ? ` · ${bat.temp.toFixed(1).replace(".", ",")} °C` : ""}</div></div>`);
+    r.querySelector(".stat").innerHTML = boxes.join("");
+    r.querySelector(".stat").style.display = boxes.length ? "grid" : "none";
+    // --- wake bars
     const hourly = this._mode === "h";
     const b = hourly ? hourBuckets(this._ev) : dayBuckets(this._ev);
     const max = Math.max(1, ...b.map((x) => x.n));
@@ -162,10 +270,9 @@ class KWakeChart extends KBase {
     r.querySelector(".ax").style.setProperty("--gap", hourly ? "4px" : "12px");
     r.querySelector(".bars").innerHTML = b.map((x, i) =>
       `<div class="b${x.n ? "" : " z"}${this._sel === i ? " sel" : ""}" data-i="${i}">${x.n ? `<em>${x.n}</em>` : ""}<i style="height:${x.n ? 8 + (x.n / max) * 118 : 3}px"></i></div>`).join("");
-    r.querySelector(".ax").innerHTML = b.map((x, i) => {
+    r.querySelector(".ax").innerHTML = b.map((x) => {
       const d = new Date(x.t);
-      const label = hourly ? (d.getHours() % 3 === 0 ? pad(d.getHours()) : "") : d.toLocaleDateString("hu-HU", { weekday: "short" });
-      return `<span>${label}</span>`;
+      return `<span>${hourly ? (d.getHours() % 3 === 0 ? pad(d.getHours()) : "") : d.toLocaleDateString("hu-HU", { weekday: "short" })}</span>`;
     }).join("");
     const read = r.querySelector(".read");
     if (this._sel != null && b[this._sel]) {
@@ -173,16 +280,17 @@ class KWakeChart extends KBase {
       read.textContent = hourly ? `${pad(d.getHours())}:00–${pad((d.getHours() + 1) % 24)}:00 · ${x.n} ébredés`
         : `${d.toLocaleDateString("hu-HU", { month: "long", day: "numeric", weekday: "long" })} · ${x.n} ébredés`;
     } else read.textContent = "Koppints egy oszlopra a részletekért";
-    const last = [...this._ev].sort((a, c) => c.t - a.t).slice(0, 8);
-    const today = startOfDay(Date.now());
-    r.querySelector(".list").innerHTML = last.length ? last.map((e) => {
-      const d = new Date(e.t);
-      const day = e.t >= today ? "ma" : e.t >= today - DAY ? "tegnap" : d.toLocaleDateString("hu-HU", { month: "numeric", day: "numeric" });
-      return `<div class="li"><span class="d"></span><span class="t">${pad(d.getHours())}:${pad(d.getMinutes())}</span><span class="w">${day}${e.n > 1 ? ` · ${e.n}×` : ""}</span></div>`;
-    }).join("") : `<div class="none">Még nincs rögzített ébredés.</div>`;
+    // --- wake / dim log (screen state changes; falls back to the counter when there is no presence sensor)
+    const log = this._cfg.presence
+      ? [...this._screen].sort((a, c) => c.t - a.t).slice(0, 10).map((e) => ({ t: e.t, on: e.on, label: e.on ? "Felébredt" : "Elsötétült" }))
+      : [...this._ev].sort((a, c) => c.t - a.t).slice(0, 10).map((e) => ({ t: e.t, on: true, label: e.n > 1 ? `Felébredt (${e.n}×)` : "Felébredt" }));
+    r.querySelector(".log").innerHTML = log.length ? log.map((e) =>
+      `<div class="li"><span class="d${e.on ? "" : " off"}"></span><span class="t">${e.label}</span><span class="w">${dayLabel(e.t)} ${hhmm(e.t)}</span></div>`).join("")
+      : `<div class="none">Még nincs rögzített esemény.</div>`;
+    if (!this._camOpen) this._drawCam();
   }
 }
 if (!customElements.get("kiosk-wake-chart")) customElements.define("kiosk-wake-chart", KWakeChart);
 
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "kiosk-wake-tile", name: "Kiosk wake tile", description: "Today's wake-ups" }, { type: "kiosk-wake-chart", name: "Kiosk wake chart", description: "Wake-up chart" });
+window.customCards.push({ type: "kiosk-wake-tile", name: "Kiosk wake tile", description: "Wake-ups, screen state, battery" }, { type: "kiosk-wake-chart", name: "Kiosk wake chart", description: "Wake chart, screen log, camera" });

@@ -88,8 +88,8 @@ pick_apk() {
 
 deploy_ha() {
   [[ -n ${HA_TOKEN:-} ]] || { read -r -s -p "HA long-lived token (not stored): " HA_TOKEN; echo; export HA_TOKEN; }
-  local which; read -r -p "Deploy: [1] v1 iOS dark  [2] v2 ambient  [3] wake-up tile (Otthon)  > " which
-  case $which in 1) v=v1 ;; 2) v=v2 ;; 3) v=wake ;; *) die "invalid choice" ;; esac
+  local which; read -r -p "Deploy: [1] v1 iOS dark  [2] v2 ambient  [3] tablet tile (Otthon)  [4] voice commands  [5] tablet camera  > " which
+  case $which in 1) v=v1 ;; 2) v=v2 ;; 3) v=wake ;; 4) python3 ha/scripts/gen_tv_voice.py; v=tv ;; 5) v=cam ;; *) die "invalid choice" ;; esac
   say "Deploying HA $v"
   python3 ha/scripts/deploy.py "$v"
   rm -rf ha/scripts/__pycache__
@@ -108,7 +108,7 @@ ${B}HA Kiosk${N}  ${D}($(git rev-parse --short HEAD 2>/dev/null || echo '-'), $(
   ${B}6${N}) Start / restart the app on the tablet
   ${B}7${N}) Logcat (this app only, Ctrl-C to stop)
   ${B}8${N}) Unit tests
-  ${B}9${N}) Deploy HA dashboards / cards (v1 · v2 · wake tile)
+  ${B}9${N}) Deploy to HA (dashboards · tablet tile · voice commands · camera)
   ${B}0${N}) Exit
 
 EOF

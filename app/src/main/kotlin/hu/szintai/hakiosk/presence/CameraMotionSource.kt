@@ -1,6 +1,9 @@
 package hu.szintai.hakiosk.presence
 
 import android.content.Context
+import android.graphics.Bitmap
+import hu.szintai.hakiosk.share.CameraFrameServer
+import java.io.ByteArrayOutputStream
 import android.os.SystemClock
 import android.util.Log
 import android.util.Size
@@ -23,11 +26,13 @@ import java.util.concurrent.Executors
 class CameraMotionSource(
     private val context: Context,
     private val onGrid: (IntArray) -> Unit,
+    private val frameServer: CameraFrameServer,
 ) {
     private var provider: ProcessCameraProvider? = null
     private var executor: ExecutorService? = null
     private var lastFrameAt = 0L
     private var received = 0L
+    private var lastJpegAt = 0L
 
     /**
      * Binds the camera to [owner]'s lifecycle. CameraX then opens/closes it with the owner's
@@ -79,6 +84,10 @@ class CameraMotionSource(
                 Log.i(TAG, "frames received=$received size=${image.width}x${image.height} format=${image.format} rot=${image.imageInfo.rotationDegrees}")
             }
             val now = SystemClock.elapsedRealtime()
+            if (frameServer.wantsFrames && now - lastJpegAt >= JPEG_INTERVAL_MS) {
+                lastJpegAt = now
+                frameServer.publish(image.toJpeg())
+            }
             if (now - lastFrameAt < MIN_FRAME_INTERVAL_MS) return
             lastFrameAt = now
             onGrid(image.toLuminanceGrid())
@@ -87,6 +96,13 @@ class CameraMotionSource(
         } finally {
             image.close()
         }
+    }
+
+    /** Only called while someone is watching the shared stream. */
+    private fun ImageProxy.toJpeg(): ByteArray {
+        val out = ByteArrayOutputStream(24_000)
+        toBitmap().compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+        return out.toByteArray()
     }
 
     /** Averages the Y plane into a [GRID_COLS] x [GRID_ROWS] grid (sampling, not a full scan). */
@@ -126,5 +142,7 @@ class CameraMotionSource(
         const val GRID_ROWS = 24
         const val SAMPLE_STEP = 3
         const val MIN_FRAME_INTERVAL_MS = 330L // ~3 fps
+        const val JPEG_INTERVAL_MS = 120L // ~8 fps while streaming
+        const val JPEG_QUALITY = 70
     }
 }

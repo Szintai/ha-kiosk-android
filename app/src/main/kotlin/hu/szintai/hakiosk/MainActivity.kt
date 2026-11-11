@@ -39,6 +39,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import hu.szintai.hakiosk.config.ConfigRepository
+import hu.szintai.hakiosk.ha.DeviceStatusMonitor
+import hu.szintai.hakiosk.share.CameraFrameServer
 import hu.szintai.hakiosk.config.VoiceMode
 import hu.szintai.hakiosk.presence.CameraMotionSource
 import hu.szintai.hakiosk.presence.DisplayMode
@@ -56,8 +58,12 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var configRepository: ConfigRepository
 
+    // Injected so the singletons exist (they start themselves): camera share server, battery/IP reporter.
+    @Inject lateinit var frameServer: CameraFrameServer
+    @Inject lateinit var deviceStatusMonitor: DeviceStatusMonitor
+
     private val presence: PresenceViewModel by viewModels()
-    private val cameraSource by lazy { CameraMotionSource(applicationContext, presence::onFrame) }
+    private val cameraSource by lazy { CameraMotionSource(applicationContext, presence::onFrame, frameServer) }
 
     private val micPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* start() re-checks */ }

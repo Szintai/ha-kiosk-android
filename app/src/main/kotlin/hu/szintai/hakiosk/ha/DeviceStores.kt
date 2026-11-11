@@ -2,7 +2,7 @@ package hu.szintai.hakiosk.ha
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -15,7 +15,8 @@ import javax.inject.Singleton
 data class HaRegistration(
     val deviceId: String,
     val webhookId: String?,
-    val sensorsRegistered: Boolean,
+    /** Version of the sensor set registered in HA; bump [MobileAppHaReporter] to register new ones. */
+    val sensorsVersion: Int,
 )
 
 @Singleton
@@ -30,27 +31,27 @@ class HaDeviceStore @Inject constructor(private val dataStore: DataStore<Prefere
         return HaRegistration(
             deviceId = prefs[DEVICE_ID]!!,
             webhookId = prefs[WEBHOOK_ID],
-            sensorsRegistered = prefs[SENSORS_REGISTERED] ?: false,
+            sensorsVersion = prefs[SENSORS_VERSION] ?: 0,
         )
     }
 
     suspend fun saveWebhook(webhookId: String) = dataStore.edit {
         it[WEBHOOK_ID] = webhookId
-        it[SENSORS_REGISTERED] = false
+        it[SENSORS_VERSION] = 0
     }
 
-    suspend fun markSensorsRegistered() = dataStore.edit { it[SENSORS_REGISTERED] = true }
+    suspend fun markSensorsRegistered(version: Int) = dataStore.edit { it[SENSORS_VERSION] = version }
 
     /** HA forgot us (webhook gone): register again on the next report. */
     suspend fun clearRegistration() = dataStore.edit {
         it.remove(WEBHOOK_ID)
-        it[SENSORS_REGISTERED] = false
+        it[SENSORS_VERSION] = 0
     }
 
     private companion object {
         val DEVICE_ID = stringPreferencesKey("ha_device_id")
         val WEBHOOK_ID = stringPreferencesKey("ha_webhook_id")
-        val SENSORS_REGISTERED = booleanPreferencesKey("ha_sensors_registered")
+        val SENSORS_VERSION = intPreferencesKey("ha_sensors_version")
     }
 }
 

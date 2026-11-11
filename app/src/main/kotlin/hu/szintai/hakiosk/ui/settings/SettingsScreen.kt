@@ -123,6 +123,21 @@ fun SettingsScreen(
                     DndAccessRow()
                 }
             }
+            SectionLabel("Kamerakép megosztása")
+            GroupCard {
+                SwitchRow(
+                    "Kamerakép kérésre",
+                    "Az előlapi kamera képe csak akkor látszik a Home Assistantban, ha ott megnyitod. Egyébként semmit nem küld.",
+                    c.cameraShare,
+                ) { v -> edit { it.copy(cameraShare = v) } }
+                if (c.cameraShare) {
+                    Divider()
+                    HintText(
+                        "A kép a tablet házi hálózati címén érhető el, titkos kulccsal védve (port ${c.cameraPort}). " +
+                            "A pontos cím a Home Assistant „Kiosk Tablet IP address” entitásának attribútumaiban van.",
+                    )
+                }
+            }
             Box(Modifier.padding(bottom = 24.dp))
         }
     }
