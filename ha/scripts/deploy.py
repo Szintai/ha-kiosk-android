@@ -5,7 +5,9 @@ Env:  HA_TOKEN  long-lived access token (never commit it)
       HA_HOST   default 192.168.0.11
       HA_SSH    ssh host that owns the HA config dir (default: kixpi)
       HA_WWW    default /docker/container/home-assistant/config/www/kiosk
-Usage: deploy.py [v1|v2|wake]   (default v2)
+Usage: deploy.py [v1|v2|wake|tv]   (default v2)
+  tv   -> creates/updates the automation ha/automations/kiosk-tv-voice.json (Hungarian TV voice commands,
+          conversation triggers; generate it first with ha/scripts/gen_tv_voice.py)
   wake -> ha/www/kiosk-wake.js + adds the wake-up tile and its pop-up to the Otthon dashboard
           (dashboard-otthon, first section that has the otthon-tv card). Idempotent.
   v1 -> ha/www/kiosk-cards.js,    ha/dashboard/kiosk.json  -> dashboard-kiosk   (iOS dark, flat)
@@ -63,8 +65,19 @@ async def deploy_wake(ha):
     r = await ha.call(type="lovelace/config/save", url_path="dashboard-otthon", config=cfg)
     print("dashboard-otthon saved:", r.get("success"), r.get("error") or "")
 
+def deploy_tv():
+    import urllib.request
+    body = (ROOT / "automations" / "kiosk-tv-voice.json").read_bytes()
+    req = urllib.request.Request(
+        f"http://{HOST}:8123/api/config/automation/config/kiosk_tv_voice", data=body, method="POST",
+        headers={"Authorization": f"Bearer {os.environ['HA_TOKEN']}", "Content-Type": "application/json"})
+    print("automation kiosk_tv_voice:", urllib.request.urlopen(req, timeout=20).read().decode())
+
 async def main():
     ver = sys.argv[1] if len(sys.argv) > 1 else "v2"
+    if ver == "tv":
+        deploy_tv()
+        return
     if ver == "wake":
         async with HA() as ha:
             await deploy_wake(ha)

@@ -73,6 +73,11 @@ class VoiceController @Inject constructor(
     private val _state = MutableStateFlow(VoiceUi())
     val state: StateFlow<VoiceUi> = _state.asStateFlow()
 
+    /** Continuous mode: the last sentence that did NOT contain the wake phrase (shown briefly, aids tuning). */
+    private val _lastHeard = MutableStateFlow("")
+    val lastHeard: StateFlow<String> = _lastHeard.asStateFlow()
+    private val clearHeard = Runnable { _lastHeard.value = "" }
+
     /** Emits when the user is clearly present/interacting (wake phrase, command) so the display can wake. */
     private val _activity = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val activity: SharedFlow<Unit> = _activity.asSharedFlow()
@@ -231,6 +236,7 @@ class VoiceController @Inject constructor(
     /** Continuous mode: act only on utterances that contain one of the wake phrases. */
     private fun onPassiveResult(text: String) {
         val match = if (armed) 0 to 0 else WakePhrase.find(text, config.voiceWakePhrase)
+        if (match != null) Log.i(TAG, "wake phrase matched in: \"$text\"")
         if (armed || match != null) {
             val command = if (armed) text else text.substring(match!!.second)
             val cleaned = command.trim(' ', ',', '.', '!', '?', ':')
@@ -244,6 +250,12 @@ class VoiceController @Inject constructor(
                 listen(passive = false)
             }
         } else {
+            Log.i(TAG, "passive heard (no wake phrase): \"$text\"")
+            if (text.isNotBlank()) {
+                _lastHeard.value = text
+                main.removeCallbacks(clearHeard)
+                main.postDelayed(clearHeard, HEARD_VISIBLE_MS)
+            }
             finish(VoiceUi())
         }
     }
@@ -289,5 +301,6 @@ class VoiceController @Inject constructor(
         const val REPLY_VISIBLE_MS = 6_000L
         const val ERROR_VISIBLE_MS = 5_000L
         const val RESTART_MS = 300L
+        const val HEARD_VISIBLE_MS = 6_000L
     }
 }

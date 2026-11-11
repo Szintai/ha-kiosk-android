@@ -49,6 +49,7 @@ class PresenceViewModel @Inject constructor(
     val mode: StateFlow<DisplayMode> = _mode.asStateFlow()
 
     val voice: StateFlow<VoiceUi> = voiceController.state
+    val lastHeard: StateFlow<String> = voiceController.lastHeard
 
     private val _config = MutableStateFlow(AppConfig())
     val config: StateFlow<AppConfig> = _config.asStateFlow()

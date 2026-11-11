@@ -1,0 +1,436 @@
+{
+  "alias": "Kiosk: TV hangparancsok",
+  "description": "Magyar hangparancsok a Samsung TV-hez (generálva: ha/scripts/gen_tv_voice.py)",
+  "mode": "single",
+  "triggers": [
+    {
+      "trigger": "conversation",
+      "command": [
+        "kapcsold be a (tévét|televíziót|tv)",
+        "indítsd be a (tévét|televíziót|tv)",
+        "tévé be"
+      ],
+      "id": "tv_on"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "kapcsold ki a (tévét|televíziót|tv)",
+        "tévé ki"
+      ],
+      "id": "tv_off"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(hangosítsd|növeld|emeld) fel a (tévét|tv|hangerőt)",
+        "hangosítsd fel",
+        "hangosabban",
+        "emeld a hangerőt"
+      ],
+      "id": "vol_up"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(halkítsd|csökkentsd|vedd) le a (tévét|tv|hangerőt)",
+        "halkítsd le",
+        "halkabban",
+        "csökkentsd a hangerőt"
+      ],
+      "id": "vol_down"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "[a] (tévé|tv) hangerő[t|je|jét] [állítsd|legyen|tedd] {volume}",
+        "(állítsd|tedd|legyen) a (tévé|tv) hangerejét {volume}",
+        "(állítsd|tedd) a hangerőt {volume}",
+        "hangerő {volume}"
+      ],
+      "id": "vol_set"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "némítsd [el] a (tévét|hangot)",
+        "némítsd el",
+        "némítás"
+      ],
+      "id": "mute"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "kapcsold vissza a hangot",
+        "szólaljon meg a tévé",
+        "némítás ki"
+      ],
+      "id": "unmute"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "következő csatorna",
+        "a következő csatorna",
+        "csatorna fel"
+      ],
+      "id": "ch_up"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "előző csatorna",
+        "az előző csatorna",
+        "csatorna le"
+      ],
+      "id": "ch_down"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(állítsd meg|szüneteltesd) a (videót|lejátszást)",
+        "szünet"
+      ],
+      "id": "pause"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "folytasd a (videót|lejátszást)",
+        "indítsd el a lejátszást",
+        "lejátszás"
+      ],
+      "id": "play"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(indítsd|nyisd meg|kapcsold be) a youtube ot",
+        "(indítsd|nyisd meg) a youtubeot"
+      ],
+      "id": "youtube"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(indítsd|nyisd meg|kapcsold be) a netflixet",
+        "(indítsd|nyisd meg) a netflixet"
+      ],
+      "id": "netflix"
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "variables": {
+        "level": "{% set ns = namespace(n=-1) %}\n{% set raw = (trigger.slots.volume | default('') | string | lower) %}\n{% set digits = raw | regex_findall('\\\\d+') %}\n{% if digits | length > 0 %}\n  {% set ns.n = digits[0] | int %}\n{% else %}\n  {% set units = {'nulla':0,'egy':1,'kettő':2,'két':2,'három':3,'négy':4,'öt':5,'hat':6,'hét':7,'nyolc':8,'kilenc':9} %}\n  {% set tens = {'tíz':10,'húsz':20,'harminc':30,'negyven':40,'ötven':50,'hatvan':60,'hetven':70,'nyolcvan':80,'kilencven':90,'száz':100} %}\n  {% set pref = {'tizen':10,'huszon':20,'harminc':30,'negyven':40,'ötven':50,'hatvan':60,'hetven':70,'nyolcvan':80,'kilencven':90} %}\n  {% for w in raw.replace('-', ' ').split() %}\n    {% for c in [w, w[:-2]] %}\n      {% if ns.n < 0 %}\n        {% if c in tens %}{% set ns.n = tens[c] %}\n        {% elif c in units %}{% set ns.n = units[c] %}\n        {% else %}\n          {% for p, v in pref.items() %}\n            {% if ns.n < 0 and c.startswith(p) and c[p | length:] in units %}{% set ns.n = v + units[c[p | length:]] %}{% endif %}\n          {% endfor %}\n        {% endif %}\n      {% endif %}\n    {% endfor %}\n  {% endfor %}\n{% endif %}\n{{ ns.n }}"
+      }
+    },
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tv_on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.turn_on",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              }
+            },
+            {
+              "set_conversation_response": "Bekapcsolom a tévét"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "tv_off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.turn_off",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              }
+            },
+            {
+              "set_conversation_response": "Kikapcsolom a tévét"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "vol_up"
+            }
+          ],
+          "sequence": [
+            {
+              "repeat": {
+                "count": 3,
+                "sequence": [
+                  {
+                    "action": "media_player.volume_up",
+                    "target": {
+                      "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "set_conversation_response": "Hangosítom"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "vol_down"
+            }
+          ],
+          "sequence": [
+            {
+              "repeat": {
+                "count": 3,
+                "sequence": [
+                  {
+                    "action": "media_player.volume_down",
+                    "target": {
+                      "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "set_conversation_response": "Halkítom"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "vol_set"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ level | int(-1) >= 0 }}"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.volume_set",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "volume_level": "{{ ([100, level | int] | min) / 100 }}"
+              }
+            },
+            {
+              "set_conversation_response": "A tévé hangereje {{ [100, level | int] | min }}"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "vol_set"
+            }
+          ],
+          "sequence": [
+            {
+              "set_conversation_response": "Nem értettem a hangerőt"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "mute"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.volume_mute",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "is_volume_muted": true
+              }
+            },
+            {
+              "set_conversation_response": "Némítva"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "unmute"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.volume_mute",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "is_volume_muted": false
+              }
+            },
+            {
+              "set_conversation_response": "Hang visszakapcsolva"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "ch_up"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "remote.send_command",
+              "target": {
+                "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "command": "KEY_CHUP"
+              }
+            },
+            {
+              "set_conversation_response": "Következő csatorna"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "ch_down"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "remote.send_command",
+              "target": {
+                "entity_id": "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "command": "KEY_CHDOWN"
+              }
+            },
+            {
+              "set_conversation_response": "Előző csatorna"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "pause"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.media_pause",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              }
+            },
+            {
+              "set_conversation_response": "Megállítva"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "play"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.media_play",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              }
+            },
+            {
+              "set_conversation_response": "Folytatom"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "youtube"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.play_media",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "media_content_type": "app",
+                "media_content_id": "111299001912"
+              }
+            },
+            {
+              "set_conversation_response": "Indítom a YouTube-ot"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "netflix"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "media_player.play_media",
+              "target": {
+                "entity_id": "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
+              },
+              "data": {
+                "media_content_type": "app",
+                "media_content_id": "3201907018807"
+              }
+            },
+            {
+              "set_conversation_response": "Indítom a Netflixet"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

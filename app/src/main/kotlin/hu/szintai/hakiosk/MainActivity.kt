@@ -77,11 +77,12 @@ class MainActivity : ComponentActivity() {
             HaKioskTheme {
                 val mode by presence.mode.collectAsState()
                 val voice by presence.voice.collectAsState()
+                val heard by presence.lastHeard.collectAsState()
                 val settings by presence.config.collectAsState()
                 Box(Modifier.fillMaxSize()) {
                     AppNavHost()
                     if (settings.voiceEnabled && mode == DisplayMode.Active) {
-                        VoiceOverlay(voice, onMicClick = presence::startVoice)
+                        VoiceOverlay(voice, heard, onMicClick = presence::startVoice)
                     }
                     if (mode == DisplayMode.Dim) DimOverlay()
                 }
@@ -185,8 +186,15 @@ class MainActivity : ComponentActivity() {
 
 /** Mic button (bottom-left) plus a status pill showing what was heard and Home Assistant's reply. */
 @androidx.compose.runtime.Composable
-private fun VoiceOverlay(ui: VoiceUi, onMicClick: () -> Unit) {
+private fun VoiceOverlay(ui: VoiceUi, passiveHeard: String, onMicClick: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
+        if (passiveHeard.isNotBlank() && ui.phase != VoicePhase.Thinking && ui.phase != VoicePhase.Done) {
+            Text(
+                "Hallottam: \u201E$passiveHeard\u201D",
+                color = Color(0xFF8E8E93),
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 76.dp, bottom = 30.dp),
+            )
+        }
         Box(
             Modifier
                 .align(Alignment.BottomStart)
