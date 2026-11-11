@@ -3,7 +3,18 @@ package hu.szintai.hakiosk.ui.settings
 import android.app.NotificationManager
 import android.content.Intent
 import android.provider.Settings
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.layout.Arrangement
@@ -88,6 +99,26 @@ fun SettingsScreen(
                 }
             }
 
+            SectionLabel("Kamera előnézet")
+            GroupCard {
+                Column(Modifier.padding(vertical = 14.dp)) {
+                    CameraPreview(
+                        enabled = c.presenceEnabled || c.cameraShare,
+                        frames = viewModel.previewFrames,
+                        onActive = viewModel::setPreviewActive,
+                    )
+                    HintText("Ezt látja az előlapi kamera a kiválasztott elforgatással: a mozgásérzékelés és a Home Assistantban megosztott kép is ez. Csak amíg a Beállítások nyitva vannak, készül kép.")
+                    Text("Kép elforgatása", color = Palette.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Box(Modifier.padding(top = 10.dp))
+                    Segmented(
+                        options = ROTATIONS.map { "$it°" },
+                        selected = ROTATIONS.indexOf(c.cameraRotation).coerceAtLeast(0),
+                        onSelect = { i -> edit { it.copy(cameraRotation = ROTATIONS[i]) } },
+                    )
+                }
+            }
+            LaunchedEffect(c.cameraRotation) { viewModel.setPreviewRotation(c.cameraRotation) }
+
             SectionLabel("Hangvezérlés")
             GroupCard {
                 Column(Modifier.padding(vertical = 14.dp)) {
@@ -159,6 +190,7 @@ private fun Header(onCancel: () -> Unit, onSave: () -> Unit) {
 }
 
 private val VOICE_LABELS = listOf("Ki", "Ébredéskor", "Mozgásra", "Folyamatos")
+private val ROTATIONS = listOf(0, 90, 180, 270)
 
 private fun voiceHint(mode: VoiceMode) = when (mode) {
     VoiceMode.Off -> "Nincs hangvezérlés."
@@ -204,6 +236,31 @@ private fun DndAccessRow() {
             PillButton("Hozzáférés megadása", primary = false) {
                 context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
             }
+        }
+    }
+}
+
+/** Live preview of the front camera; asks for frames only while this composable is shown. */
+@Composable
+private fun CameraPreview(enabled: Boolean, frames: StateFlow<ByteArray?>, onActive: (Boolean) -> Unit) {
+    DisposableEffect(enabled) {
+        onActive(enabled)
+        onDispose { onActive(false) }
+    }
+    val frame by frames.collectAsState()
+    val bitmap = remember(frame) { frame?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() } }
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(4f / 3f)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.Black),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            !enabled -> Text("A kamera ki van kapcsolva (kapcsold be a kamerás érzékelést vagy a kamerakép megosztását).", color = Palette.Mute, modifier = Modifier.padding(24.dp))
+            bitmap == null -> Text("Kép betöltése…", color = Palette.Mute)
+            else -> Image(bitmap = bitmap, contentDescription = "Kamera előnézet", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
         }
     }
 }

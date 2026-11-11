@@ -3,7 +3,9 @@
  *   kiosk-wake-tile  : small card: today's wake-ups, screen state, battery; tap -> opens the pop-up hash
  *   kiosk-wake-chart : modal content: state + battery, 24 h / 7 day wake bars, wake/dim log, camera
  *
- * Config (both cards): entity (wake counter), presence, battery, charging, temp, camera.
+ * Config (both cards): entity (wake counter), presence, battery, charging, temp, camera,
+ * camera_rotate (0/90/180/270, CSS rotation of the camera image in the modal; use it only while the app's own
+ * 'Kép elforgatása' setting is 0, otherwise the image is rotated twice).
  * Wake-ups = every increase of the total_increasing counter in the recorder history. The screen log is
  * every on/off change of the presence binary sensor (on = awake, off = dimmed).
  * The camera is only streamed while the "Kamera" button has been pressed (and the modal is visible). */
@@ -19,6 +21,7 @@ const dayLabel = (t) => {
   return new Date(t).toLocaleDateString("hu-HU", { month: "numeric", day: "numeric" });
 };
 const ICON = `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"/></svg>`;
+const CAM_ICON = `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
 const BOLT = `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`;
 const BATT = (pct, charging) => `<svg viewBox="0 0 28 14" width="1.8em" height="0.9em"><rect x="1" y="1" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" stroke-width="1.6" opacity=".7"/><rect x="25" y="4.5" width="2" height="5" rx="1" fill="currentColor" opacity=".7"/><rect x="3" y="3" width="${Math.max(1, Math.round(19 * pct / 100))}" height="8" rx="2" fill="${charging ? GREEN : pct <= 15 ? RED : "currentColor"}"/></svg>`;
 
@@ -126,15 +129,17 @@ class KWakeTile extends KBase {
       .pill .b{font-size:13px;display:flex;align-items:center;gap:3px}
       .pill .c{color:${GREEN};font-size:11px}
       .mini{margin-left:auto;display:flex;align-items:flex-end;gap:2px;height:38px}
+      .camb{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:19px;background:rgba(10,132,255,.14);color:#0a84ff;flex:none;margin-left:6px}
+      .camb:active{transform:scale(.92)}
       .mini i{display:block;width:4px;border-radius:2px;background:${ORANGE};min-height:2px;opacity:.9}
       .mini i.z{background:var(--o-line,rgba(0,0,0,.1));opacity:1}
       .card:active{transform:scale(.985)}
     </style>
-    <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div></button>`;
-    this.shadowRoot.querySelector(".card").addEventListener("click", () => {
-      window.history.pushState(null, "", this._cfg.hash || "#wakes");
-      window.dispatchEvent(new CustomEvent("location-changed"));
-    });
+    <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div><span class="camb" role="button" aria-label="Kamerakép" title="Kamerakép">${CAM_ICON}</span></button>`;
+    const open = (hash) => { window.history.pushState(null, "", hash); window.dispatchEvent(new CustomEvent("location-changed")); };
+    this.shadowRoot.querySelector(".card").addEventListener("click", () => open(this._cfg.hash || "#wakes"));
+    // The camera button opens the camera pop-up directly, without the statistics pop-up.
+    this.shadowRoot.querySelector(".camb").addEventListener("click", (e) => { e.stopPropagation(); open(this._cfg.camera_hash || "#tabletcam"); });
   }
   _draw() {
     const r = this.shadowRoot; if (!r.querySelector(".n")) return;
@@ -150,6 +155,8 @@ class KWakeTile extends KBase {
       (bat ? `<div class="pill"><span class="b">${BATT(bat.level, bat.charging)}</span>${bat.level} %${bat.charging ? ` <span class="c">${BOLT}</span>` : ""}</div>` : "");
     const b = hourBuckets(this._ev), max = Math.max(1, ...b.map((x) => x.n));
     r.querySelector(".mini").innerHTML = b.map((x) => `<i class="${x.n ? "" : "z"}" style="height:${x.n ? 8 + (x.n / max) * 30 : 2}px"></i>`).join("");
+    // show the camera button only when the camera entity exists
+    r.querySelector(".camb").style.display = this._cfg.camera && this.st(this._cfg.camera)?.attributes?.access_token ? "" : "none";
   }
 }
 if (!customElements.get("kiosk-wake-tile")) customElements.define("kiosk-wake-tile", KWakeTile);
@@ -247,7 +254,11 @@ class KWakeChart extends KBase {
     if (!this._camOpen) {
       el.innerHTML = `<button class="camBtn">Kamerakép megnyitása</button><div class="camNote">Csak a megnyitás idejére streamel, bezáráskor leáll.</div>`;
     } else {
-      el.innerHTML = `<button class="camBtn stop">Bezárás</button><div class="camBox"><img alt="Kamera" src="${url}"></div>`;
+      const deg = ((parseInt(this._cfg.camera_rotate) || 0) % 360 + 360) % 360;
+      const sideways = deg === 90 || deg === 270;
+      // sideways images are rotated inside a 4:3 box, so shrink them to fit instead of being cropped
+      const tf = deg ? `transform:rotate(${deg}deg)${sideways ? " scale(.75)" : ""};` : "";
+      el.innerHTML = `<button class="camBtn stop">Bezárás</button><div class="camBox"><img alt="Kamera" style="${tf}" src="${url}"></div>`;
     }
   }
 
@@ -292,5 +303,104 @@ class KWakeChart extends KBase {
 }
 if (!customElements.get("kiosk-wake-chart")) customElements.define("kiosk-wake-chart", KWakeChart);
 
+/* ================================================================== camera tile + viewer */
+
+/** Small tile that opens the camera pop-up (config: camera, name, hash). The camera is NOT touched until the pop-up opens. */
+class KCameraTile extends HTMLElement {
+  constructor() { super(); this.attachShadow({ mode: "open" }); this._cfg = null; this._hass = null; }
+  setConfig(c) { if (!c.camera) throw new Error("camera is required"); this._cfg = { ...c }; this._build(); this._draw(); }
+  set hass(h) { this._hass = h; this._draw(); }
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
+  _build() {
+    this.shadowRoot.innerHTML = `<style>${BASE_CSS}
+      .card{padding:16px 18px;display:flex;align-items:center;gap:14px;width:100%}
+      .ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:21px;background:rgba(10,132,255,.14);color:#0a84ff;flex:none}
+      .t{font-size:16px;font-weight:650}
+      .s{font-size:12.5px;color:var(--o-mute,#8a8a90);margin-top:2px}
+      .go{margin-left:auto;font-size:13px;font-weight:600;color:var(--o-mute,#8a8a90)}
+      .card:active{transform:scale(.985)}
+    </style>
+    <button class="card"><div class="ic">${CAM_ICON}</div><div><div class="t"></div><div class="s"></div></div><div class="go">Megnyitás ›</div></button>`;
+    this.shadowRoot.querySelector(".card").addEventListener("click", () => {
+      window.history.pushState(null, "", this._cfg.hash || "#tabletcam");
+      window.dispatchEvent(new CustomEvent("location-changed"));
+    });
+  }
+  _draw() {
+    const r = this.shadowRoot; if (!r.querySelector(".t")) return;
+    const ok = !!this._hass?.states?.[this._cfg.camera]?.attributes?.access_token;
+    r.querySelector(".t").textContent = this._cfg.name || "Tablet kamera";
+    r.querySelector(".s").textContent = ok ? "Élő kép, csak a megnyitás idejére" : "Nincs bekapcsolva a tableten";
+    r.querySelector(".go").style.display = ok ? "" : "none";
+  }
+}
+if (!customElements.get("kiosk-camera-tile")) customElements.define("kiosk-camera-tile", KCameraTile);
+
+/** Camera view for the pop-up: streams only while it is actually visible (config: camera, camera_rotate). */
+class KCameraView extends HTMLElement {
+  constructor() { super(); this.attachShadow({ mode: "open" }); this._cfg = null; this._hass = null; this._visible = false; this._active = false; }
+  setConfig(c) { if (!c.camera) throw new Error("camera is required"); this._cfg = { ...c }; this._build(); this._sync(); }
+  set hass(h) { this._hass = h; this._sync(); }
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
+  connectedCallback() {
+    this._io = new IntersectionObserver((entries) => { this._visible = entries.some((e) => e.isIntersecting); this._sync(); }, { threshold: 0.1 });
+    this._io.observe(this);
+  }
+  disconnectedCallback() { this._io?.disconnect(); this._visible = false; this._stop(true); }
+  _build() {
+    this.shadowRoot.innerHTML = `<style>${BASE_CSS}
+      .wrap{padding:6px 4px 4px}
+      .box{position:relative;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:4/3;display:grid;place-items:center}
+      .box img{width:100%;height:100%;object-fit:contain;display:block}
+      .live{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:7px;padding:5px 11px 5px 9px;border-radius:14px;background:rgba(0,0,0,.55);color:#fff;font-size:12.5px;font-weight:700}
+      .live i{width:8px;height:8px;border-radius:50%;background:#ff453a;animation:p 1.4s ease-in-out infinite}
+      @keyframes p{50%{opacity:.35}}
+      .msg{color:#fff;font-size:14px;text-align:center;padding:20px}
+      .resume{margin-top:12px;display:inline-block;padding:10px 22px;border-radius:18px;background:rgba(255,255,255,.16);font-weight:600;cursor:pointer}
+      .note{font-size:12px;color:var(--o-mute,#8a8a90);margin:10px 4px 2px}
+    </style><div class="wrap"><div class="box"></div><div class="note"></div></div>`;
+    this.shadowRoot.querySelector(".box").addEventListener("click", (e) => { if (e.target.closest(".resume")) { this._start(); } });
+  }
+  _url() {
+    const id = this._cfg?.camera, a = this._hass?.states?.[id]?.attributes;
+    return a?.access_token ? `/api/camera_proxy_stream/${id}?token=${a.access_token}` : null;
+  }
+  _sync() {
+    if (!this._cfg || !this.shadowRoot.querySelector(".box")) return;
+    if (this._visible && !this._active && !this._expired) this._start();
+    else if (!this._visible && this._active) this._stop();
+    else if (!this._visible) { this._expired = false; this._paint(); }
+    else if (this._visible && !this._active && !this._expired) this._paint();
+  }
+  _start() {
+    if (!this._url()) { this._paint(); return; }
+    this._active = true; this._expired = false; this._paint();
+    clearTimeout(this._timeout);
+    this._timeout = setTimeout(() => { this._expired = true; this._stop(); }, 3 * 60e3);
+  }
+  _stop(silent) {
+    clearTimeout(this._timeout);
+    this._active = false;
+    if (!silent) this._paint();
+  }
+  _paint() {
+    const box = this.shadowRoot.querySelector(".box"), note = this.shadowRoot.querySelector(".note");
+    if (!box) return;
+    if (this._active) {
+      const deg = ((parseInt(this._cfg.camera_rotate) || 0) % 360 + 360) % 360, sideways = deg === 90 || deg === 270;
+      const tf = deg ? `transform:rotate(${deg}deg)${sideways ? " scale(.75)" : ""};` : "";
+      const cur = box.querySelector("img");
+      if (!cur) box.innerHTML = `<img alt="Tablet kamera" style="${tf}" src="${this._url()}"><div class="live"><i></i>Élő</div>`;
+      note.textContent = "A kép csak addig megy, amíg ez az ablak nyitva van (legfeljebb 3 percig).";
+    } else {
+      box.innerHTML = !this._url()
+        ? `<div class="msg">A kamera nincs bekapcsolva a tableten (Beállítások → Kamerakép megosztása).</div>`
+        : this._expired ? `<div class="msg">A kép 3 perc után leállt.<br><span class="resume">Folytatás</span></div>` : `<div class="msg">…</div>`;
+      note.textContent = "";
+    }
+  }
+}
+if (!customElements.get("kiosk-camera-view")) customElements.define("kiosk-camera-view", KCameraView);
+
 window.customCards = window.customCards || [];
-window.customCards.push({ type: "kiosk-wake-tile", name: "Kiosk wake tile", description: "Wake-ups, screen state, battery" }, { type: "kiosk-wake-chart", name: "Kiosk wake chart", description: "Wake chart, screen log, camera" });
+window.customCards.push({ type: "kiosk-wake-tile", name: "Kiosk wake tile", description: "Wake-ups, screen state, battery" }, { type: "kiosk-wake-chart", name: "Kiosk wake chart", description: "Wake chart, screen log, camera" }, { type: "kiosk-camera-tile", name: "Kiosk camera tile", description: "Opens the tablet camera pop-up" }, { type: "kiosk-camera-view", name: "Kiosk camera view", description: "Streams only while visible" });

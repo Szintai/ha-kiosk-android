@@ -35,6 +35,7 @@ class DataStoreConfigRepository @Inject constructor(
             prefs[CAMERA_SHARE] = next.cameraShare
             prefs[CAMERA_PORT] = next.cameraPort
             prefs[CAMERA_TOKEN] = next.cameraToken
+            prefs[CAMERA_ROTATION] = next.cameraRotation
             prefs[VOICE_LANGUAGE] = next.voiceLanguage
         }
     }
@@ -58,6 +59,7 @@ class DataStoreConfigRepository @Inject constructor(
             cameraShare = this[CAMERA_SHARE] ?: d.cameraShare,
             cameraPort = this[CAMERA_PORT] ?: d.cameraPort,
             cameraToken = this[CAMERA_TOKEN] ?: d.cameraToken,
+            cameraRotation = this[CAMERA_ROTATION] ?: d.cameraRotation,
             voiceLanguage = this[VOICE_LANGUAGE] ?: d.voiceLanguage,
         )
     }
@@ -78,6 +80,7 @@ class DataStoreConfigRepository @Inject constructor(
         val CAMERA_SHARE = booleanPreferencesKey("camera_share")
         val CAMERA_PORT = intPreferencesKey("camera_port")
         val CAMERA_TOKEN = stringPreferencesKey("camera_token")
+        val CAMERA_ROTATION = intPreferencesKey("camera_rotation")
         val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
     }
 }

@@ -31,6 +31,8 @@ data class AppConfig(
     val cameraPort: Int = 8099,
     /** Shared secret in the stream URL (`?t=...`); generated on first enable. */
     val cameraToken: String = "",
+    /** Clockwise rotation applied to the shared camera image (0, 90, 180 or 270), e.g. 180 for an upside-down tablet. */
+    val cameraRotation: Int = 0,
 ) {
     val voiceEnabled: Boolean get() = voiceMode != VoiceMode.Off
 

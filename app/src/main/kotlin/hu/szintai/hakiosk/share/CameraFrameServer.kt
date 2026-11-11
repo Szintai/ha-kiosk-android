@@ -5,6 +5,9 @@ import hu.szintai.hakiosk.config.AppConfig
 import hu.szintai.hakiosk.config.ConfigRepository
 import hu.szintai.hakiosk.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.OutputStream
 import java.net.ServerSocket
@@ -38,11 +41,37 @@ class CameraFrameServer @Inject constructor(
     @Volatile private var latest: ByteArray? = null
     @Volatile private var seq = 0L
     @Volatile private var token = ""
+
+    /** Clockwise degrees (0/90/180/270) the producer applies to each frame; follows the settings. */
+    @Volatile var rotation = 0
+        private set
     private var server: ServerSocket? = null
     private var port = -1
 
     /** The port actually bound (differs from the configured one only when that is 0, as in tests). */
     val localPort: Int get() = server?.localPort ?: -1
+
+    private val _preview = MutableStateFlow<ByteArray?>(null)
+
+    /** Latest preview frame for the in-app settings screen (null until one arrives). */
+    val preview: StateFlow<ByteArray?> = _preview.asStateFlow()
+
+    /** Set by the settings screen while it shows the preview; frames are only encoded meanwhile. */
+    @Volatile var previewActive = false
+
+    /** Rotation for the preview (the *draft* setting, so the effect is visible before saving). */
+    @Volatile var previewRotation = 0
+
+    /** True while someone (an HTTP client or the settings preview) needs encoded frames. */
+    val needsFrames: Boolean get() = wantsFrames || previewActive
+
+    fun publishPreview(jpeg: ByteArray) {
+        _preview.value = jpeg
+    }
+
+    fun clearPreview() {
+        _preview.value = null
+    }
 
     /** True while at least one client is connected, i.e. frames should be produced. */
     val wantsFrames: Boolean get() = clients.get() > 0
@@ -58,6 +87,7 @@ class CameraFrameServer @Inject constructor(
 
     @Synchronized
     private fun apply(config: AppConfig) {
+        rotation = ((config.cameraRotation % 360) + 360) % 360
         if (!config.cameraShare) {
             stop()
             return

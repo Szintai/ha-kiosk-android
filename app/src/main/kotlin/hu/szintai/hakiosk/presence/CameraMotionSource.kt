@@ -2,6 +2,7 @@ package hu.szintai.hakiosk.presence
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import hu.szintai.hakiosk.share.CameraFrameServer
 import java.io.ByteArrayOutputStream
 import android.os.SystemClock
@@ -84,9 +85,11 @@ class CameraMotionSource(
                 Log.i(TAG, "frames received=$received size=${image.width}x${image.height} format=${image.format} rot=${image.imageInfo.rotationDegrees}")
             }
             val now = SystemClock.elapsedRealtime()
-            if (frameServer.wantsFrames && now - lastJpegAt >= JPEG_INTERVAL_MS) {
+            if (frameServer.needsFrames && now - lastJpegAt >= JPEG_INTERVAL_MS) {
                 lastJpegAt = now
-                frameServer.publish(image.toJpeg())
+                val bitmap = image.toBitmap()
+                if (frameServer.wantsFrames) frameServer.publish(bitmap.toJpeg(frameServer.rotation))
+                if (frameServer.previewActive) frameServer.publishPreview(bitmap.toJpeg(frameServer.previewRotation))
             }
             if (now - lastFrameAt < MIN_FRAME_INTERVAL_MS) return
             lastFrameAt = now
@@ -98,10 +101,13 @@ class CameraMotionSource(
         }
     }
 
-    /** Only called while someone is watching the shared stream. */
-    private fun ImageProxy.toJpeg(): ByteArray {
+    /** Only called while someone is watching (shared stream or the settings preview). */
+    private fun Bitmap.toJpeg(degrees: Int): ByteArray {
         val out = ByteArrayOutputStream(24_000)
-        toBitmap().compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+        val upright = if (degrees == 0) this else Bitmap.createBitmap(
+            this, 0, 0, width, height, Matrix().apply { postRotate(degrees.toFloat()) }, true,
+        )
+        upright.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
         return out.toByteArray()
     }
 

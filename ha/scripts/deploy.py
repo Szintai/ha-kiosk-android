@@ -44,6 +44,8 @@ WAKE_CFG = {
     "charging": "binary_sensor.kiosk_tablet_battery_charging",
     "temp": "sensor.kiosk_tablet_battery_temperature",
     "camera": "camera.kiosk_tablet_camera",
+    # The tablet stands upside down (charger on top). Set to 0 once the app's own "Kép elforgatása" is 180°.
+    "camera_rotate": 180,
 }
 CAMERA_NAME = "Kiosk Tablet Camera"
 
@@ -62,16 +64,21 @@ async def deploy_wake(ha):
     await register_resource(ha, "kiosk-wake.js")
     cfg = (await ha.call(type="lovelace/config", url_path="dashboard-otthon"))["result"]
     section = next(s for s in cfg["views"][0]["sections"] if any(c["type"] == "custom:otthon-tv" for c in s["cards"]))
-    cards = [c for c in section["cards"] if c.get("type") != "custom:kiosk-wake-tile"
-             and not (c.get("type") == "custom:bubble-card" and c.get("hash") == "#wakes")]
-    tile = {"type": "custom:kiosk-wake-tile", **WAKE_CFG, "name": "Tablet", "hash": "#wakes",
+    cards = [c for c in section["cards"] if c.get("type") not in ("custom:kiosk-wake-tile", "custom:kiosk-camera-tile")
+             and not (c.get("type") == "custom:bubble-card" and c.get("hash") in ("#wakes", "#tabletcam"))]
+    tile = {"type": "custom:kiosk-wake-tile", **WAKE_CFG, "name": "Tablet", "hash": "#wakes", "camera_hash": "#tabletcam",
             "grid_options": {"columns": "full"}}
     popup = {"type": "custom:bubble-card", "card_type": "pop-up", "hash": "#wakes", "name": "Tablet",
              "icon": "mdi:tablet", "entity": WAKE_ENTITY,
              "cards": [{"type": "custom:kiosk-wake-chart", **WAKE_CFG}]}
+    cam_popup = {"type": "custom:bubble-card", "card_type": "pop-up", "hash": "#tabletcam", "name": "Tablet kamera",
+                 "icon": "mdi:camera",
+                 "cards": [{"type": "custom:kiosk-camera-view", "camera": WAKE_CFG["camera"],
+                            "camera_rotate": WAKE_CFG["camera_rotate"]}]}
     idx = max(i for i, c in enumerate(cards) if c["type"] == "custom:otthon-tv")
     cards.insert(idx + 1, tile)
     cards.append(popup)
+    cards.append(cam_popup)
     section["cards"] = cards
     r = await ha.call(type="lovelace/config/save", url_path="dashboard-otthon", config=cfg)
     print("dashboard-otthon saved:", r.get("success"), r.get("error") or "")
