@@ -5,8 +5,12 @@ Env:  HA_TOKEN  long-lived access token (never commit it)
       HA_HOST   default 192.168.0.11
       HA_SSH    ssh host that owns the HA config dir (default: kixpi)
       HA_WWW    default /docker/container/home-assistant/config/www/kiosk
-Steps: copy ha/www/kiosk-cards.js -> HA /local/kiosk, register it as a Lovelace
-resource (bumping ?v=), create the `dashboard-kiosk` dashboard, save ha/dashboard/kiosk.json.
+Usage: deploy.py [v1|v2]   (default v2)
+  v1 -> ha/www/kiosk-cards.js,    ha/dashboard/kiosk.json  -> dashboard-kiosk   (iOS dark, flat)
+  v2 -> ha/www/kiosk-cards-v2.js, ha/dashboard/kiosk2.json -> dashboard-kiosk2  (ambient)
+v2 reuses the kiosk-dock card from v1, so v1's file is deployed as well.
+Each step copies the card file(s), registers them as Lovelace resources (bumping ?v=)
+and creates/saves the dashboard.
 """
 import asyncio, json, os, subprocess, sys, time
 from pathlib import Path
@@ -21,23 +25,32 @@ SSH = os.environ.get("HA_SSH", "kixpi")
 WWW = os.environ.get("HA_WWW", "/docker/container/home-assistant/config/www/kiosk")
 hawspy.URL = f"ws://{HOST}:8123/api/websocket"
 
+VERSIONS = {
+    "v1": {"files": ["kiosk-cards.js"], "dash": ("dashboard-kiosk", "Kiosk", "dashboard/kiosk.json")},
+    "v2": {"files": ["kiosk-cards.js", "kiosk-cards-v2.js"], "dash": ("dashboard-kiosk2", "Kiosk 2", "dashboard/kiosk2.json")},
+}
+
 async def main():
+    ver = sys.argv[1] if len(sys.argv) > 1 else "v2"
+    spec = VERSIONS[ver]
     subprocess.run(["ssh", SSH, f"mkdir -p {WWW}"], check=True)
-    subprocess.run(["scp", "-q", str(ROOT / "www/kiosk-cards.js"), f"{SSH}:{WWW}/kiosk-cards.js"], check=True)
-    url = f"/local/kiosk/kiosk-cards.js?v={int(time.time())}"
     async with HA() as ha:
         res = (await ha.call(type="lovelace/resources"))["result"]
-        cur = next((r for r in res if "kiosk-cards.js" in r["url"]), None)
-        if cur:
-            await ha.call(type="lovelace/resources/update", resource_id=cur["id"], res_type="module", url=url)
-        else:
-            await ha.call(type="lovelace/resources/create", res_type="module", url=url)
+        for name in spec["files"]:
+            subprocess.run(["scp", "-q", str(ROOT / "www" / name), f"{SSH}:{WWW}/{name}"], check=True)
+            url = f"/local/kiosk/{name}?v={int(time.time())}"
+            cur = next((r for r in res if name in r["url"]), None)
+            if cur:
+                await ha.call(type="lovelace/resources/update", resource_id=cur["id"], res_type="module", url=url)
+            else:
+                await ha.call(type="lovelace/resources/create", res_type="module", url=url)
+        url_path, title, cfg_file = spec["dash"]
         dashes = (await ha.call(type="lovelace/dashboards/list"))["result"]
-        if not any(d["url_path"] == "dashboard-kiosk" for d in dashes):
-            await ha.call(type="lovelace/dashboards/create", url_path="dashboard-kiosk", title="Kiosk",
+        if not any(d["url_path"] == url_path for d in dashes):
+            await ha.call(type="lovelace/dashboards/create", url_path=url_path, title=title,
                           icon="mdi:tablet-dashboard", show_in_sidebar=True, require_admin=False, mode="storage")
-        cfg = json.loads((ROOT / "dashboard/kiosk.json").read_text())
-        r = await ha.call(type="lovelace/config/save", url_path="dashboard-kiosk", config=cfg)
-        print("dashboard saved:", r.get("success"), r.get("error") or "")
+        cfg = json.loads((ROOT / cfg_file).read_text())
+        r = await ha.call(type="lovelace/config/save", url_path=url_path, config=cfg)
+        print(f"{url_path} saved:", r.get("success"), r.get("error") or "")
 
 asyncio.run(main())

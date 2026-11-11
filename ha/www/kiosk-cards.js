@@ -225,7 +225,7 @@ class KDock extends KBase {
       .cl .vals{display:flex;align-items:baseline;gap:16px;margin-top:2px}
       .cl .t{font-size:30px;font-weight:300;letter-spacing:-.03em;line-height:1.05}
       .cl .t small{font-size:15px;color:var(--o-mute);margin-left:2px}
-      .cl .h{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:600;color:${BLUE}}
+      .cl .h{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:600;color:var(--k-hum,${BLUE})}
       .cl .h svg{font-size:13px}
       .spark{position:relative;height:36px;margin-top:4px}
       .spark svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
@@ -244,7 +244,7 @@ class KDock extends KBase {
         <div class="row"><div class="nm">${esc(cl.name)}</div></div>
         <div class="vals"><div class="t"><span class="tv">–</span><small>°C</small></div><div class="h">${ICON.drop}<span class="hv">–</span></div></div>
         <div class="spark"><svg viewBox="0 0 100 100" preserveAspectRatio="none">
-          <path class="lh" fill="none" stroke="${BLUE}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".85" d=""/>
+          <path class="lh" fill="none" style="stroke:var(--k-hum,${BLUE})" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".85" d=""/>
           <path class="lt" fill="none" stroke="${ORANGE}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" d=""/></svg></div>
         <div class="ax"><span>24 órája</span><span>Most</span></div></div>`).join("")}
       <div class="ctl">
