@@ -34,7 +34,7 @@ svg{display:block}`;
 const startOfDay = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
 const tsOf = (r) => { const ts = r.lu ?? r.last_updated ?? r.lc; return typeof ts === "number" ? ts * 1000 : new Date(ts).getTime(); };
 
-async function history(hass, entity, days = 7) {
+async function fetchHistory(hass, entity, days = 7) {
   const end = Date.now(), start = end - days * DAY;
   const res = await hass.callWS({ type: "history/history_during_period", start_time: new Date(start).toISOString(), end_time: new Date(end).toISOString(),
     entity_ids: [entity], minimal_response: true, no_attributes: true, significant_changes_only: false });
@@ -43,7 +43,7 @@ async function history(hass, entity, days = 7) {
 /** [{t, n}] wake-ups from the counter history. */
 async function loadWakes(hass, entity) {
   const out = []; let prev = null;
-  for (const r of await history(hass, entity)) {
+  for (const r of await fetchHistory(hass, entity)) {
     const v = parseFloat(r.s ?? r.state); if (!Number.isFinite(v)) continue;
     if (prev != null && v > prev) out.push({ t: tsOf(r), n: v - prev });
     prev = v;
@@ -53,7 +53,7 @@ async function loadWakes(hass, entity) {
 /** [{t, on}] display awake/dimmed changes from the presence sensor history (first state is only the baseline). */
 async function loadScreenLog(hass, entity) {
   const out = []; let prev = null;
-  for (const r of await history(hass, entity)) {
+  for (const r of await fetchHistory(hass, entity)) {
     const s = r.s ?? r.state; if (s !== "on" && s !== "off") continue;
     if (prev != null && s !== prev) out.push({ t: tsOf(r), on: s === "on" });
     prev = s;
@@ -132,7 +132,7 @@ class KWakeTile extends KBase {
     </style>
     <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div></button>`;
     this.shadowRoot.querySelector(".card").addEventListener("click", () => {
-      history.pushState(null, "", this._cfg.hash || "#wakes");
+      window.history.pushState(null, "", this._cfg.hash || "#wakes");
       window.dispatchEvent(new CustomEvent("location-changed"));
     });
   }
