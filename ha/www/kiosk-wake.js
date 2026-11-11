@@ -134,8 +134,19 @@ class KWakeTile extends KBase {
       .mini i{display:block;width:4px;border-radius:2px;background:${ORANGE};min-height:2px;opacity:.9}
       .mini i.z{background:var(--o-line,rgba(0,0,0,.1));opacity:1}
       .card:active{transform:scale(.985)}
+      .txt{min-width:0}
+      .camb{margin-left:auto}
+      .mini + .camb{margin-left:6px}
+      @media (max-width:600px){
+        .card{padding:12px 14px;gap:12px}
+        .ic{width:40px;height:40px;font-size:19px}
+        .n{font-size:28px}
+        .mini{display:none}      /* the bars do not fit next to the camera button on a phone */
+        .camb{margin-left:auto;width:40px;height:40px}
+        .pills{margin-top:5px}
+      }
     </style>
-    <button class="card"><div class="ic">${ICON}</div><div><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div><span class="camb" role="button" aria-label="Kamerakép" title="Kamerakép">${CAM_ICON}</span></button>`;
+    <button class="card"><div class="ic">${ICON}</div><div class="txt"><div class="l"></div><div class="n">–</div><div class="s"></div><div class="pills"></div></div><div class="mini"></div><span class="camb" role="button" aria-label="Kamerakép" title="Kamerakép">${CAM_ICON}</span></button>`;
     const open = (hash) => { window.history.pushState(null, "", hash); window.dispatchEvent(new CustomEvent("location-changed")); };
     this.shadowRoot.querySelector(".card").addEventListener("click", () => open(this._cfg.hash || "#wakes"));
     // The camera button opens the camera pop-up directly, without the statistics pop-up.

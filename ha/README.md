@@ -30,6 +30,8 @@ HA-specific lives here:
 - **Camera:** the app can serve the front camera (`Kamerakép megosztása`, token-protected, only streams while a client is
   connected). `deploy.py cam` creates the `mjpeg` camera `camera.kiosk_tablet_camera` from the URL the tablet publishes; the
   modal's *Kamerakép megnyitása* button streams it through HA only while open.
+- `scripts/otthon_mobile_patch.py` – adds a compact phone layout (`max-width: 600px` media queries only) to the Otthon cards in
+  `www/otthon/otthon-cards.js` on the Pi (idempotent, backup `…bak-before-mobile`, `--revert` restores it).
 - `scripts/deploy.py` – uploads the card, registers the resource and saves the dashboard.
 
 ```

@@ -44,8 +44,9 @@ WAKE_CFG = {
     "charging": "binary_sensor.kiosk_tablet_battery_charging",
     "temp": "sensor.kiosk_tablet_battery_temperature",
     "camera": "camera.kiosk_tablet_camera",
-    # The tablet stands upside down (charger on top). Set to 0 once the app's own "Kép elforgatása" is 180°.
-    "camera_rotate": 180,
+    # CSS rotation of the camera image in the HA card. Keep 0 while the app's own "Kép elforgatása" (Settings,
+    # currently 180° for the upside-down tablet) already delivers an upright image; otherwise it rotates twice.
+    "camera_rotate": 0,
 }
 CAMERA_NAME = "Kiosk Tablet Camera"
 
