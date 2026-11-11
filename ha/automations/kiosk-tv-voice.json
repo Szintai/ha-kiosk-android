@@ -1,6 +1,6 @@
 {
   "alias": "Kiosk: TV hangparancsok",
-  "description": "Magyar hangparancsok a Samsung TV-hez (generálva: ha/scripts/gen_tv_voice.py)",
+  "description": "Magyar hangparancsok a Samsung TV-hez és a lámpákhoz (generálva: ha/scripts/gen_tv_voice.py)",
   "mode": "single",
   "triggers": [
     {
@@ -102,6 +102,27 @@
         "lejátszás"
       ],
       "id": "play"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(kapcsold|oltsd) (le|ki) az összes lámpát",
+        "(kapcsold|oltsd) (le|ki) a lámpákat",
+        "(kapcsold|oltsd) (le|ki) minden lámpát",
+        "minden lámpa ki"
+      ],
+      "id": "lights_off"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(kapcsold|gyújtsd) fel az összes lámpát",
+        "(kapcsold|gyújtsd) fel a lámpákat",
+        "(kapcsold|gyújtsd) fel minden lámpát",
+        "kapcsold be az összes lámpát",
+        "minden lámpa be"
+      ],
+      "id": "lights_on"
     },
     {
       "trigger": "conversation",
@@ -381,6 +402,44 @@
             },
             {
               "set_conversation_response": "Folytatom"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "lights_off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_off",
+              "target": {
+                "entity_id": "all"
+              }
+            },
+            {
+              "set_conversation_response": "Lekapcsoltam az összes lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "lights_on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_on",
+              "target": {
+                "entity_id": "all"
+              }
+            },
+            {
+              "set_conversation_response": "Felkapcsoltam az összes lámpát"
             }
           ]
         },

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates ha/automations/kiosk-tv-voice.json: Hungarian voice commands for the Samsung TV.
+"""Generates ha/automations/kiosk-tv-voice.json: Hungarian voice commands for the Samsung TV and all lights.
 
 A single automation with `conversation` triggers (matched by HA's Assist before its own intents),
 so it needs no configuration.yaml change and no restart. Deploy with `deploy.py tv`.
@@ -28,6 +28,19 @@ SENTENCES = {
     "ch_down": ["előző csatorna", "az előző csatorna", "csatorna le"],
     "pause": ["(állítsd meg|szüneteltesd) a (videót|lejátszást)", "szünet"],
     "play": ["folytasd a (videót|lejátszást)", "indítsd el a lejátszást", "lejátszás"],
+    "lights_off": [
+        "(kapcsold|oltsd) (le|ki) az összes lámpát",
+        "(kapcsold|oltsd) (le|ki) a lámpákat",
+        "(kapcsold|oltsd) (le|ki) minden lámpát",
+        "minden lámpa ki",
+    ],
+    "lights_on": [
+        "(kapcsold|gyújtsd) fel az összes lámpát",
+        "(kapcsold|gyújtsd) fel a lámpákat",
+        "(kapcsold|gyújtsd) fel minden lámpát",
+        "kapcsold be az összes lámpát",
+        "minden lámpa be",
+    ],
     # App ids are the Tizen ones; untested on this TV (Emby intentionally not included yet).
     "youtube": ["(indítsd|nyisd meg|kapcsold be) a youtube ot", "(indítsd|nyisd meg) a youtubeot"],
     "netflix": ["(indítsd|nyisd meg|kapcsold be) a netflixet", "(indítsd|nyisd meg) a netflixet"],
@@ -88,7 +101,7 @@ def app(app_id: str) -> dict:
 
 automation = {
     "alias": "Kiosk: TV hangparancsok",
-    "description": "Magyar hangparancsok a Samsung TV-hez (generálva: ha/scripts/gen_tv_voice.py)",
+    "description": "Magyar hangparancsok a Samsung TV-hez és a lámpákhoz (generálva: ha/scripts/gen_tv_voice.py)",
     "mode": "single",
     "triggers": [{"trigger": "conversation", "command": s, "id": i} for i, s in SENTENCES.items()],
     "conditions": [],
@@ -122,6 +135,8 @@ automation = {
                 branch("ch_down", key("KEY_CHDOWN"), reply("Előző csatorna")),
                 branch("pause", tv("media_pause"), reply("Megállítva")),
                 branch("play", tv("media_play"), reply("Folytatom")),
+                branch("lights_off", {"action": "light.turn_off", "target": {"entity_id": "all"}}, reply("Lekapcsoltam az összes lámpát")),
+                branch("lights_on", {"action": "light.turn_on", "target": {"entity_id": "all"}}, reply("Felkapcsoltam az összes lámpát")),
                 branch("youtube", app("111299001912"), reply("Indítom a YouTube-ot")),
                 branch("netflix", app("3201907018807"), reply("Indítom a Netflixet")),
             ],
