@@ -127,6 +127,42 @@
     {
       "trigger": "conversation",
       "command": [
+        "(kapcsold|gyújtsd) fel [a] nappali lámp(a|át)",
+        "kapcsold be [a] nappali lámp(a|át)",
+        "(kapcsold|gyújtsd) fel a lámpát a nappaliban"
+      ],
+      "id": "living_on"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(kapcsold|oltsd) (le|ki) [a] nappali lámp(a|át)",
+        "oltsd el [a] nappali lámp(a|át)",
+        "(kapcsold|oltsd) (le|ki) a lámpát a nappaliban"
+      ],
+      "id": "living_off"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(kapcsold|gyújtsd) fel [a] (hálószoba|hálószobai) lámp(a|át)",
+        "kapcsold be [a] (hálószoba|hálószobai) lámp(a|át)",
+        "(kapcsold|gyújtsd) fel a lámpát a hálószobában"
+      ],
+      "id": "bedroom_on"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
+        "(kapcsold|oltsd) (le|ki) [a] (hálószoba|hálószobai) lámp(a|át)",
+        "oltsd el [a] (hálószoba|hálószobai) lámp(a|át)",
+        "(kapcsold|oltsd) (le|ki) a lámpát a hálószobában"
+      ],
+      "id": "bedroom_off"
+    },
+    {
+      "trigger": "conversation",
+      "command": [
         "(indítsd|nyisd meg|kapcsold be) a youtube ot",
         "(indítsd|nyisd meg) a youtubeot"
       ],
@@ -440,6 +476,82 @@
             },
             {
               "set_conversation_response": "Felkapcsoltam az összes lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "living_on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_on",
+              "target": {
+                "entity_id": "light.haloszoba_lampa"
+              }
+            },
+            {
+              "set_conversation_response": "Felkapcsoltam a nappali lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "living_off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_off",
+              "target": {
+                "entity_id": "light.haloszoba_lampa"
+              }
+            },
+            {
+              "set_conversation_response": "Lekapcsoltam a nappali lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "bedroom_on"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_on",
+              "target": {
+                "entity_id": "light.aqara_lumi_light_agl004"
+              }
+            },
+            {
+              "set_conversation_response": "Felkapcsoltam a hálószoba lámpát"
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "bedroom_off"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "light.turn_off",
+              "target": {
+                "entity_id": "light.aqara_lumi_light_agl004"
+              }
+            },
+            {
+              "set_conversation_response": "Lekapcsoltam a hálószoba lámpát"
             }
           ]
         },

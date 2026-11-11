@@ -9,6 +9,10 @@ from pathlib import Path
 
 TV = "media_player.samsung_au7022_55_tv_ue55au7022kxxh"
 REMOTE = "remote.samsung_au7022_55_tv_ue55au7022kxxh"
+LIGHTS = {  # key -> (HA entity, spoken words incl. accusative "-t", reply name)
+    "living": ("light.haloszoba_lampa", "nappali", "a nappali lámpát"),
+    "bedroom": ("light.aqara_lumi_light_agl004", "(hálószoba|hálószobai)", "a hálószoba lámpát"),
+}
 
 # Hassil sentence templates: (a|b) alternatives, [x] optional, {name} wildcard slot.
 SENTENCES = {
@@ -41,6 +45,23 @@ SENTENCES = {
         "kapcsold be az összes lámpát",
         "minden lámpa be",
     ],
+    # Single lights: "[a] <szoba> lámp(a|át)" accepts the nominative and the accusative form.
+    **{
+        f"{room}_{state}": sentences
+        for room, (_, name, _) in LIGHTS.items()
+        for state, sentences in {
+            "on": [
+                f"(kapcsold|gyújtsd) fel [a] {name} lámp(a|át)",
+                f"kapcsold be [a] {name} lámp(a|át)",
+                f"(kapcsold|gyújtsd) fel a lámpát a {name.replace('(hálószoba|hálószobai)', 'hálószobában') if 'hálószoba' in name else 'nappaliban'}",
+            ],
+            "off": [
+                f"(kapcsold|oltsd) (le|ki) [a] {name} lámp(a|át)",
+                f"oltsd el [a] {name} lámp(a|át)",
+                f"(kapcsold|oltsd) (le|ki) a lámpát a {name.replace('(hálószoba|hálószobai)', 'hálószobában') if 'hálószoba' in name else 'nappaliban'}",
+            ],
+        }.items()
+    },
     # App ids are the Tizen ones; untested on this TV (Emby intentionally not included yet).
     "youtube": ["(indítsd|nyisd meg|kapcsold be) a youtube ot", "(indítsd|nyisd meg) a youtubeot"],
     "netflix": ["(indítsd|nyisd meg|kapcsold be) a netflixet", "(indítsd|nyisd meg) a netflixet"],
@@ -137,6 +158,15 @@ automation = {
                 branch("play", tv("media_play"), reply("Folytatom")),
                 branch("lights_off", {"action": "light.turn_off", "target": {"entity_id": "all"}}, reply("Lekapcsoltam az összes lámpát")),
                 branch("lights_on", {"action": "light.turn_on", "target": {"entity_id": "all"}}, reply("Felkapcsoltam az összes lámpát")),
+                *[
+                    branch(
+                        f"{room}_{state}",
+                        {"action": f"light.turn_{state}", "target": {"entity_id": entity}},
+                        reply(("Felkapcsoltam " if state == "on" else "Lekapcsoltam ") + label),
+                    )
+                    for room, (entity, _, label) in LIGHTS.items()
+                    for state in ("on", "off")
+                ],
                 branch("youtube", app("111299001912"), reply("Indítom a YouTube-ot")),
                 branch("netflix", app("3201907018807"), reply("Indítom a Netflixet")),
             ],
