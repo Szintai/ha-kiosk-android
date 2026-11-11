@@ -98,8 +98,7 @@ def deploy_cam():
             call("DELETE", f"/api/config/config_entries/entry/{e['entry_id']}")
     flow = call("POST", "/api/config/config_entries/flow", {"handler": "mjpeg"})
     out = call("POST", f"/api/config/config_entries/flow/{flow['flow_id']}", {
-        "name": CAMERA_NAME, "mjpeg_url": stream, "still_image_url": still,
-        "authentication": "basic", "verify_ssl": False})
+        "name": CAMERA_NAME, "mjpeg_url": stream, "still_image_url": still, "verify_ssl": False})
     print("mjpeg camera:", out.get("type"), out.get("errors") or out.get("title") or "")
 
 def deploy_tv():
