@@ -41,6 +41,8 @@ fun SettingsScreen(
     var motionArea by remember { mutableStateOf("") }
     var dimBrightness by remember { mutableStateOf("") }
     var reportToHa by remember { mutableStateOf(true) }
+    var voiceEnabled by remember { mutableStateOf(false) }
+    var voiceLanguage by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         val c = viewModel.load()
@@ -52,6 +54,8 @@ fun SettingsScreen(
         motionArea = c.motionMinAreaPercent.toString()
         dimBrightness = c.dimBrightnessPercent.toString()
         reportToHa = c.reportToHa
+        voiceEnabled = c.voiceEnabled
+        voiceLanguage = c.voiceLanguage
     }
 
     Surface(Modifier.fillMaxSize()) {
@@ -71,6 +75,8 @@ fun SettingsScreen(
             Field("Mozgás érzékenység: változó terület %-a (kisebb = érzékenyebb)", motionArea, number = true) { motionArea = it }
             Field("Fényerő sötétítve (%)", dimBrightness, number = true) { dimBrightness = it }
             SwitchRow("Ébredések küldése a Home Assistantnak", reportToHa) { reportToHa = it }
+            SwitchRow("Hallgatózás ébredéskor (hangvezérlés)", voiceEnabled) { voiceEnabled = it }
+            Field("Beszédfelismerés nyelve (pl. hu-HU)", voiceLanguage) { voiceLanguage = it }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(onClick = {
@@ -85,6 +91,8 @@ fun SettingsScreen(
                             motionMinAreaPercent = motionArea.toIntOrNull()?.coerceIn(1, 50) ?: d.motionMinAreaPercent,
                             dimBrightnessPercent = dimBrightness.toIntOrNull()?.coerceIn(1, 100) ?: d.dimBrightnessPercent,
                             reportToHa = reportToHa,
+                            voiceEnabled = voiceEnabled,
+                            voiceLanguage = voiceLanguage.trim().ifBlank { d.voiceLanguage },
                         ),
                         onSaved = onDone,
                     )

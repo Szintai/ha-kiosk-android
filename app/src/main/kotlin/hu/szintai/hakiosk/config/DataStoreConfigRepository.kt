@@ -29,6 +29,8 @@ class DataStoreConfigRepository @Inject constructor(
             prefs[MOTION_MIN_AREA] = next.motionMinAreaPercent
             prefs[DIM_BRIGHTNESS] = next.dimBrightnessPercent
             prefs[REPORT_TO_HA] = next.reportToHa
+            prefs[VOICE_ENABLED] = next.voiceEnabled
+            prefs[VOICE_LANGUAGE] = next.voiceLanguage
         }
     }
 
@@ -43,6 +45,8 @@ class DataStoreConfigRepository @Inject constructor(
             motionMinAreaPercent = this[MOTION_MIN_AREA] ?: d.motionMinAreaPercent,
             dimBrightnessPercent = this[DIM_BRIGHTNESS] ?: d.dimBrightnessPercent,
             reportToHa = this[REPORT_TO_HA] ?: d.reportToHa,
+            voiceEnabled = this[VOICE_ENABLED] ?: d.voiceEnabled,
+            voiceLanguage = this[VOICE_LANGUAGE] ?: d.voiceLanguage,
         )
     }
 
@@ -55,5 +59,7 @@ class DataStoreConfigRepository @Inject constructor(
         val MOTION_MIN_AREA = intPreferencesKey("motion_min_area_pct")
         val DIM_BRIGHTNESS = intPreferencesKey("dim_brightness_pct")
         val REPORT_TO_HA = booleanPreferencesKey("report_to_ha")
+        val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
+        val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
     }
 }

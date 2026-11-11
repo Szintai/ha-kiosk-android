@@ -12,6 +12,7 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import hu.szintai.hakiosk.BuildConfig
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -26,12 +27,20 @@ class CameraMotionSource(
     private var provider: ProcessCameraProvider? = null
     private var executor: ExecutorService? = null
     private var lastFrameAt = 0L
+    private var received = 0L
 
+    /**
+     * Binds the camera to [owner]'s lifecycle. CameraX then opens/closes it with the owner's
+     * STARTED/STOPPED states by itself, so this only needs to be called once (idempotent) and
+     * [stop] only when presence detection is switched off.
+     */
     fun start(owner: LifecycleOwner) {
+        Log.i(TAG, "start() executorSet=${executor != null} state=${owner.lifecycle.currentState}")
         if (executor != null) return
         val exec = Executors.newSingleThreadExecutor().also { executor = it }
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
+            if (executor !== exec) return@addListener // stop() ran before we got here
             try {
                 val cameraProvider = future.get().also { provider = it }
                 val analysis = ImageAnalysis.Builder()
@@ -48,7 +57,8 @@ class CameraMotionSource(
                     .build()
                 analysis.setAnalyzer(exec, ::analyze)
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(owner, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
+                val camera = cameraProvider.bindToLifecycle(owner, CameraSelector.DEFAULT_FRONT_CAMERA, analysis)
+                Log.i(TAG, "bound: ${camera.cameraInfo}  analysisResolution=${analysis.resolutionInfo?.resolution}")
             } catch (e: Exception) {
                 Log.e(TAG, "Camera start failed", e)
             }
@@ -56,18 +66,24 @@ class CameraMotionSource(
     }
 
     fun stop() {
+        val exec = executor
+        executor = null // makes a still-pending start() a no-op
         provider?.unbindAll()
         provider = null
-        executor?.shutdown()
-        executor = null
+        exec?.shutdown()
     }
 
     private fun analyze(image: ImageProxy) {
         try {
+            if (BuildConfig.DEBUG && ++received % 30L == 1L) {
+                Log.i(TAG, "frames received=$received size=${image.width}x${image.height} format=${image.format} rot=${image.imageInfo.rotationDegrees}")
+            }
             val now = SystemClock.elapsedRealtime()
             if (now - lastFrameAt < MIN_FRAME_INTERVAL_MS) return
             lastFrameAt = now
             onGrid(image.toLuminanceGrid())
+        } catch (e: Exception) {
+            Log.e(TAG, "analysis failed", e)
         } finally {
             image.close()
         }

@@ -11,6 +11,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import hu.szintai.hakiosk.voice.VoicePhase
+import hu.szintai.hakiosk.voice.VoiceUi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +58,9 @@ class MainActivity : ComponentActivity() {
     private val presence: PresenceViewModel by viewModels()
     private val cameraSource by lazy { CameraMotionSource(applicationContext, presence::onFrame) }
 
+    private val micPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* start() re-checks */ }
+
     private val cameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) cameraSource.start(this)
@@ -61,8 +75,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             HaKioskTheme {
                 val mode by presence.mode.collectAsState()
+                val voice by presence.voice.collectAsState()
+                val settings by presence.config.collectAsState()
                 Box(Modifier.fillMaxSize()) {
                     AppNavHost()
+                    if (settings.voiceEnabled && mode == DisplayMode.Active) {
+                        VoiceOverlay(voice, onMicClick = presence::startVoice)
+                    }
                     if (mode == DisplayMode.Dim) DimOverlay()
                 }
             }
@@ -78,13 +97,15 @@ class MainActivity : ComponentActivity() {
                 launch {
                     presence.mode.collect { applyBrightness(it) }
                 }
+                launch {
+                    presence.config.map { it.voiceEnabled }.distinctUntilChanged().collect { enabled ->
+                        if (enabled && !hasPermission(Manifest.permission.RECORD_AUDIO)) {
+                            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
+                }
             }
         }
-    }
-
-    override fun onStop() {
-        cameraSource.stop()
-        super.onStop()
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
@@ -97,8 +118,11 @@ class MainActivity : ComponentActivity() {
         applyDebugConfig(intent)
     }
 
+    private fun hasPermission(permission: String) =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+
     private fun startCamera() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (hasPermission(Manifest.permission.CAMERA)) {
             cameraSource.start(this)
         } else {
             cameraPermission.launch(Manifest.permission.CAMERA)
@@ -134,7 +158,8 @@ class MainActivity : ComponentActivity() {
         val token = intent.getStringExtra(EXTRA_HA_TOKEN)
         val path = intent.getStringExtra(EXTRA_DASHBOARD_PATH)
         val idle = if (intent.hasExtra(EXTRA_IDLE_TIMEOUT)) intent.getIntExtra(EXTRA_IDLE_TIMEOUT, 60) else null
-        if (url == null && token == null && path == null && idle == null) return
+        val voice = if (intent.hasExtra(EXTRA_VOICE)) intent.getBooleanExtra(EXTRA_VOICE, false) else null
+        if (url == null && token == null && path == null && idle == null && voice == null) return
         lifecycleScope.launch {
             configRepository.update {
                 it.copy(
@@ -142,6 +167,7 @@ class MainActivity : ComponentActivity() {
                     haToken = token ?: it.haToken,
                     dashboardPath = path ?: it.dashboardPath,
                     idleTimeoutSeconds = idle ?: it.idleTimeoutSeconds,
+                    voiceEnabled = voice ?: it.voiceEnabled,
                 )
             }
         }
@@ -152,6 +178,42 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_HA_TOKEN = "ha_token"
         const val EXTRA_DASHBOARD_PATH = "dashboard_path"
         const val EXTRA_IDLE_TIMEOUT = "idle_timeout"
+        const val EXTRA_VOICE = "voice_enabled"
+    }
+}
+
+/** Mic button (bottom-left) plus a status pill showing what was heard and Home Assistant's reply. */
+@androidx.compose.runtime.Composable
+private fun VoiceOverlay(ui: VoiceUi, onMicClick: () -> Unit) {
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp)
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(if (ui.phase == VoicePhase.Listening) Color(0xFFFF9F0A) else Color(0x55000000))
+                .clickable(onClick = onMicClick),
+            contentAlignment = Alignment.Center,
+        ) { Text("\uD83C\uDFA4") }
+
+        if (ui.phase != VoicePhase.Idle) {
+            val line = when (ui.phase) {
+                VoicePhase.Listening -> ui.heard.ifBlank { "Hallgatlak…" }
+                VoicePhase.Thinking -> "\u201E${ui.heard}\u201D …"
+                VoicePhase.Done -> "\u201E${ui.heard}\u201D \u2192 ${ui.message}"
+                VoicePhase.Error -> ui.message
+                VoicePhase.Idle -> ""
+            }
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 28.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xE61C1C1E))
+                    .padding(horizontal = 22.dp, vertical = 14.dp),
+            ) { Text(line, color = Color.White) }
+        }
     }
 }
 

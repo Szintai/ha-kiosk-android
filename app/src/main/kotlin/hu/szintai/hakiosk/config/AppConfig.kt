@@ -18,6 +18,10 @@ data class AppConfig(
     val dimBrightnessPercent: Int = 1,
     /** Report wake events / presence to Home Assistant (mobile_app integration). */
     val reportToHa: Boolean = true,
+    /** Listen for a voice command when the display wakes up (and via the mic button). */
+    val voiceEnabled: Boolean = false,
+    /** BCP-47 tag for speech recognition; the HA conversation language is its first part. */
+    val voiceLanguage: String = "hu-HU",
 ) {
     val isConfigured: Boolean get() = haUrl.isNotBlank() && haToken.isNotBlank()
 
