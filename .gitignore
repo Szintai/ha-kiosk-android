@@ -13,3 +13,4 @@ captures/
 # Secrets must never be committed
 secrets.properties
 __pycache__/
+keystore.properties
