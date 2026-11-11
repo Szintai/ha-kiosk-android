@@ -18,23 +18,47 @@ LIGHTS = {  # key -> (HA entity, spoken words incl. accusative "-t", reply name)
 }
 
 # Hassil sentence templates: (a|b) alternatives, [x] optional, {name} wildcard slot.
+# Every written/spoken form of "TV" the recogniser may produce (nominative, accusative, "tv-t").
+TVW = "(tévét|tévé|televíziót|televízió|tv-t|tv t|tv)"
+TV_ON = "(tévén|tv-n|tv n)"  # "a tévén" (on the TV)
+HANGERO = "(hangerőt|hangerő|hangerejét|hangereje)"
+
 SENTENCES = {
-    "tv_on": ["kapcsold be a (tévét|televíziót|tv)", "indítsd be a (tévét|televíziót|tv)", "tévé be"],
-    "tv_off": ["kapcsold ki a (tévét|televíziót|tv)", "tévé ki"],
-    "vol_up": ["(hangosítsd|növeld|emeld) fel a (tévét|tv|hangerőt)", "hangosítsd fel", "hangosabban", "emeld a hangerőt"],
-    "vol_down": ["(halkítsd|csökkentsd|vedd) le a (tévét|tv|hangerőt)", "halkítsd le", "halkabban", "csökkentsd a hangerőt"],
-    "vol_set": [
-        "[a] (tévé|tv) hangerő[t|je|jét] [állítsd|legyen|tedd] {volume}",
-        "(állítsd|tedd|legyen) a (tévé|tv) hangerejét {volume}",
-        "(állítsd|tedd) a hangerőt {volume}",
-        "hangerő {volume}",
+    "tv_on": [
+        f"(kapcsold|indítsd) (be|fel) a {TVW}",
+        f"indítsd el a {TVW}",
+        f"{TVW} (be|fel)kapcsolása",
+        f"a {TVW} (be|fel)kapcsolása",
+        f"{TVW} be",
     ],
-    "mute": ["némítsd [el] a (tévét|hangot)", "némítsd el", "némítás"],
-    "unmute": ["kapcsold vissza a hangot", "szólaljon meg a tévé", "némítás ki"],
-    "ch_up": ["következő csatorna", "a következő csatorna", "csatorna fel"],
-    "ch_down": ["előző csatorna", "az előző csatorna", "csatorna le"],
-    "pause": ["(állítsd meg|szüneteltesd) a (videót|lejátszást)", "szünet"],
-    "play": ["folytasd a (videót|lejátszást)", "indítsd el a lejátszást", "lejátszás"],
+    "tv_off": [
+        f"(kapcsold|oltsd) (ki|le) a {TVW}",
+        f"{TVW} (ki|le)kapcsolása",
+        f"a {TVW} (ki|le)kapcsolása",
+        f"{TVW} ki",
+    ],
+    "vol_up": [
+        f"(hangosítsd|növeld|emeld) fel a ({TVW[1:-1]}|{HANGERO[1:-1]})",
+        "hangosítsd fel", "hangosabban", "emeld a hangerőt", "növeld a hangerőt",
+        f"hangosíts a {TV_ON}", f"hangosíts a {TVW}",
+    ],
+    "vol_down": [
+        f"(halkítsd|csökkentsd|vedd) le a ({TVW[1:-1]}|{HANGERO[1:-1]})",
+        "halkítsd le", "halkabban", "csökkentsd a hangerőt",
+        f"halkíts a {TV_ON}", f"halkíts a {TVW}",
+    ],
+    "vol_set": [
+        f"[a] {TVW} {HANGERO} [állítsd|legyen|tedd] {{volume}}",
+        f"(állítsd|tedd|legyen) a {TVW} {HANGERO} {{volume}}",
+        f"(állítsd|tedd) a {HANGERO} {{volume}}",
+        f"{HANGERO} {{volume}}",
+    ],
+    "mute": [f"némítsd [el] a ({TVW[1:-1]}|hangot)", "némítsd el", "némítás", f"vedd le a hangot a {TV_ON}"],
+    "unmute": ["kapcsold vissza a hangot", f"szólaljon meg a {TVW}", "némítás ki", f"add vissza a hangot a {TV_ON}"],
+    "ch_up": ["következő csatorna", "a következő csatorna", "csatorna fel", "(kapcsolj|válts) a következő csatornára", "(kapcsolj|válts) tovább"],
+    "ch_down": ["előző csatorna", "az előző csatorna", "csatorna le", "(kapcsolj|válts) az előző csatornára", "(kapcsolj|válts) vissza"],
+    "pause": ["(állítsd meg|szüneteltesd) a (videót|lejátszást|filmet)", "szünet"],
+    "play": ["folytasd a (videót|lejátszást|filmet)", "indítsd el a lejátszást", "lejátszás"],
     "lights_off": [
         "(kapcsold|oltsd) (le|ki) az összes lámpát",
         "(kapcsold|oltsd) (le|ki) a lámpákat",
@@ -101,8 +125,8 @@ SENTENCES = {
         }.items()
     },
     # App ids are the Tizen ones; untested on this TV (Emby intentionally not included yet).
-    "youtube": ["(indítsd|nyisd meg|kapcsold be) a youtube ot", "(indítsd|nyisd meg) a youtubeot"],
-    "netflix": ["(indítsd|nyisd meg|kapcsold be) a netflixet", "(indítsd|nyisd meg) a netflixet"],
+    "youtube": ["(indítsd|nyisd meg|kapcsold be) a (youtube-ot|youtubeot|youtube ot|youtube)"],
+    "netflix": ["(indítsd|nyisd meg|kapcsold be) a (netflixet|netflix-et|netflix et|netflix)"],
 }
 
 # Spoken or written number -> 0..100 ("20-ra", "húszra", "tizenötre", "huszonöt").

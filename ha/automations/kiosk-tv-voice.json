@@ -7,56 +7,66 @@
     {
       "trigger": "conversation",
       "command": [
-        "kapcsold be a (tévét|televíziót|tv)",
-        "indítsd be a (tévét|televíziót|tv)",
-        "tévé be"
+        "(kapcsold|indítsd) (be|fel) a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)",
+        "indítsd el a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)",
+        "(tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (be|fel)kapcsolása",
+        "a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (be|fel)kapcsolása",
+        "(tévét|tévé|televíziót|televízió|tv-t|tv t|tv) be"
       ],
       "id": "tv_on"
     },
     {
       "trigger": "conversation",
       "command": [
-        "kapcsold ki a (tévét|televíziót|tv)",
-        "tévé ki"
+        "(kapcsold|oltsd) (ki|le) a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)",
+        "(tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (ki|le)kapcsolása",
+        "a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (ki|le)kapcsolása",
+        "(tévét|tévé|televíziót|televízió|tv-t|tv t|tv) ki"
       ],
       "id": "tv_off"
     },
     {
       "trigger": "conversation",
       "command": [
-        "(hangosítsd|növeld|emeld) fel a (tévét|tv|hangerőt)",
+        "(hangosítsd|növeld|emeld) fel a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv|hangerőt|hangerő|hangerejét|hangereje)",
         "hangosítsd fel",
         "hangosabban",
-        "emeld a hangerőt"
+        "emeld a hangerőt",
+        "növeld a hangerőt",
+        "hangosíts a (tévén|tv-n|tv n)",
+        "hangosíts a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)"
       ],
       "id": "vol_up"
     },
     {
       "trigger": "conversation",
       "command": [
-        "(halkítsd|csökkentsd|vedd) le a (tévét|tv|hangerőt)",
+        "(halkítsd|csökkentsd|vedd) le a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv|hangerőt|hangerő|hangerejét|hangereje)",
         "halkítsd le",
         "halkabban",
-        "csökkentsd a hangerőt"
+        "csökkentsd a hangerőt",
+        "halkíts a (tévén|tv-n|tv n)",
+        "halkíts a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)"
       ],
       "id": "vol_down"
     },
     {
       "trigger": "conversation",
       "command": [
-        "[a] (tévé|tv) hangerő[t|je|jét] [állítsd|legyen|tedd] {volume}",
-        "(állítsd|tedd|legyen) a (tévé|tv) hangerejét {volume}",
-        "(állítsd|tedd) a hangerőt {volume}",
-        "hangerő {volume}"
+        "[a] (tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (hangerőt|hangerő|hangerejét|hangereje) [állítsd|legyen|tedd] {volume}",
+        "(állítsd|tedd|legyen) a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv) (hangerőt|hangerő|hangerejét|hangereje) {volume}",
+        "(állítsd|tedd) a (hangerőt|hangerő|hangerejét|hangereje) {volume}",
+        "(hangerőt|hangerő|hangerejét|hangereje) {volume}"
       ],
       "id": "vol_set"
     },
     {
       "trigger": "conversation",
       "command": [
-        "némítsd [el] a (tévét|hangot)",
+        "némítsd [el] a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv|hangot)",
         "némítsd el",
-        "némítás"
+        "némítás",
+        "vedd le a hangot a (tévén|tv-n|tv n)"
       ],
       "id": "mute"
     },
@@ -64,8 +74,9 @@
       "trigger": "conversation",
       "command": [
         "kapcsold vissza a hangot",
-        "szólaljon meg a tévé",
-        "némítás ki"
+        "szólaljon meg a (tévét|tévé|televíziót|televízió|tv-t|tv t|tv)",
+        "némítás ki",
+        "add vissza a hangot a (tévén|tv-n|tv n)"
       ],
       "id": "unmute"
     },
@@ -74,7 +85,9 @@
       "command": [
         "következő csatorna",
         "a következő csatorna",
-        "csatorna fel"
+        "csatorna fel",
+        "(kapcsolj|válts) a következő csatornára",
+        "(kapcsolj|válts) tovább"
       ],
       "id": "ch_up"
     },
@@ -83,14 +96,16 @@
       "command": [
         "előző csatorna",
         "az előző csatorna",
-        "csatorna le"
+        "csatorna le",
+        "(kapcsolj|válts) az előző csatornára",
+        "(kapcsolj|válts) vissza"
       ],
       "id": "ch_down"
     },
     {
       "trigger": "conversation",
       "command": [
-        "(állítsd meg|szüneteltesd) a (videót|lejátszást)",
+        "(állítsd meg|szüneteltesd) a (videót|lejátszást|filmet)",
         "szünet"
       ],
       "id": "pause"
@@ -98,7 +113,7 @@
     {
       "trigger": "conversation",
       "command": [
-        "folytasd a (videót|lejátszást)",
+        "folytasd a (videót|lejátszást|filmet)",
         "indítsd el a lejátszást",
         "lejátszás"
       ],
@@ -228,16 +243,14 @@
     {
       "trigger": "conversation",
       "command": [
-        "(indítsd|nyisd meg|kapcsold be) a youtube ot",
-        "(indítsd|nyisd meg) a youtubeot"
+        "(indítsd|nyisd meg|kapcsold be) a (youtube-ot|youtubeot|youtube ot|youtube)"
       ],
       "id": "youtube"
     },
     {
       "trigger": "conversation",
       "command": [
-        "(indítsd|nyisd meg|kapcsold be) a netflixet",
-        "(indítsd|nyisd meg) a netflixet"
+        "(indítsd|nyisd meg|kapcsold be) a (netflixet|netflix-et|netflix et|netflix)"
       ],
       "id": "netflix"
     }
