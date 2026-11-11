@@ -31,6 +31,7 @@ class DataStoreConfigRepository @Inject constructor(
             prefs[REPORT_TO_HA] = next.reportToHa
             prefs[VOICE_MODE] = next.voiceMode.key
             prefs[VOICE_WAKE_PHRASE] = next.voiceWakePhrase
+            prefs[VOICE_SPEAK] = next.voiceSpeak
             prefs[VOICE_LANGUAGE] = next.voiceLanguage
         }
     }
@@ -50,6 +51,7 @@ class DataStoreConfigRepository @Inject constructor(
             voiceMode = this[VOICE_MODE]?.let(VoiceMode::fromKey)
                 ?: if (this[VOICE_ENABLED] == true) VoiceMode.OnWake else d.voiceMode,
             voiceWakePhrase = this[VOICE_WAKE_PHRASE] ?: d.voiceWakePhrase,
+            voiceSpeak = this[VOICE_SPEAK] ?: d.voiceSpeak,
             voiceLanguage = this[VOICE_LANGUAGE] ?: d.voiceLanguage,
         )
     }
@@ -66,6 +68,7 @@ class DataStoreConfigRepository @Inject constructor(
         val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
         val VOICE_MODE = stringPreferencesKey("voice_mode")
         val VOICE_WAKE_PHRASE = stringPreferencesKey("voice_wake_phrase")
+        val VOICE_SPEAK = booleanPreferencesKey("voice_speak")
         val VOICE_LANGUAGE = stringPreferencesKey("voice_language")
     }
 }

@@ -22,6 +22,8 @@ data class AppConfig(
     val voiceMode: VoiceMode = VoiceMode.Off,
     /** Continuous mode only reacts to commands containing one of these phrases (comma separated), e.g. "hey jarvis, hé jarvis". */
     val voiceWakePhrase: String = "hey jarvis, hé jarvis, hej jarvis",
+    /** Read the answer aloud (Android text-to-speech, Google engine) after a voice command. */
+    val voiceSpeak: Boolean = true,
     /** BCP-47 tag for speech recognition; the HA conversation language is its first part. */
     val voiceLanguage: String = "hu-HU",
 ) {

@@ -1,6 +1,11 @@
 package hu.szintai.hakiosk.ui.settings
 
+import android.app.NotificationManager
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -106,7 +111,16 @@ fun SettingsScreen(
                 }
                 if (c.voiceEnabled) {
                     Divider()
-                    FieldRow("Beszédfelismerés nyelve", c.voiceLanguage) { v -> edit { it.copy(voiceLanguage = v) } }
+                    SwitchRow(
+                        "Válasz hangon",
+                        "A Home Assistant válaszát kimondja a tablet (Google beszédszintézis).",
+                        c.voiceSpeak,
+                    ) { v -> edit { it.copy(voiceSpeak = v) } }
+                    Divider()
+                    FieldRow("Beszédfelismerés és hang nyelve", c.voiceLanguage) { v -> edit { it.copy(voiceLanguage = v) } }
+                }
+                if (c.voiceMode == VoiceMode.Continuous) {
+                    DndAccessRow()
                 }
             }
             Box(Modifier.padding(bottom = 24.dp))
@@ -151,4 +165,30 @@ private fun AppConfig.normalised(): AppConfig {
         voiceWakePhrase = voiceWakePhrase.trim().ifBlank { d.voiceWakePhrase },
         voiceLanguage = voiceLanguage.trim().ifBlank { d.voiceLanguage },
     )
+}
+
+/** Muting the recogniser's beeps needs "Do Not Disturb" access; offer a shortcut to grant it. */
+@Composable
+private fun DndAccessRow() {
+    val context = LocalContext.current
+    val manager = context.getSystemService(NotificationManager::class.java)
+    var granted by remember { mutableStateOf(manager.isNotificationPolicyAccessGranted) }
+    LifecycleResumeEffect(Unit) {
+        granted = manager.isNotificationPolicyAccessGranted
+        onPauseOrDispose { }
+    }
+    Divider()
+    Column(Modifier.padding(vertical = 14.dp)) {
+        Text("Sípolás némítása", color = Palette.Ink, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        HintText(
+            if (granted) "Engedélyezve: folyamatos hallgatás közben a felismerő sípolása el van némítva."
+            else "A felismerő minden újraindításkor sípol. Ennek elnyomásához add meg a „Ne zavarjanak” hozzáférést az appnak.",
+            if (granted) Palette.Green else Palette.Mute,
+        )
+        if (!granted) {
+            PillButton("Hozzáférés megadása", primary = false) {
+                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+            }
+        }
+    }
 }

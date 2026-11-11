@@ -33,6 +33,8 @@ adb_ready() {
 
 grant_permissions() {
   for p in CAMERA RECORD_AUDIO; do adb shell pm grant "$PKG" "android.permission.$p" 2>/dev/null || true; done
+  # "Do Not Disturb" access lets the app mute the speech recogniser's beeps in continuous mode.
+  adb shell cmd notification allow_dnd "$PKG" 2>/dev/null || true
 }
 
 install_apk() {  # install_apk <apk>
@@ -53,7 +55,7 @@ install_apk() {  # install_apk <apk>
     fi
   fi
   grant_permissions
-  ok "installed, camera + microphone permissions granted"
+  ok "installed, camera, microphone and Do-Not-Disturb access granted"
 }
 
 start_app() {

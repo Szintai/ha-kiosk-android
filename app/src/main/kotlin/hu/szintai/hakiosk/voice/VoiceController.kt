@@ -56,6 +56,7 @@ data class VoiceUi(
 class VoiceController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val conversation: HaConversationClient,
+    private val speaker: VoiceSpeaker,
     private val configRepository: ConfigRepository,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -69,6 +70,7 @@ class VoiceController @Inject constructor(
     private var armed = false // wake phrase heard alone -> next utterance is the command
     private var errorStreak = 0
     private var muted = false
+    private var speaking = false
 
     private val _state = MutableStateFlow(VoiceUi())
     val state: StateFlow<VoiceUi> = _state.asStateFlow()
@@ -118,7 +120,7 @@ class VoiceController @Inject constructor(
         val wantContinuous = cfg.voiceMode == VoiceMode.Continuous
         if (wantContinuous == continuous) return
         continuous = wantContinuous
-        setBeepsMuted(wantContinuous)
+        refreshMute()
         if (wantContinuous) {
             resumePassive(0)
         } else if (passiveSession) {
@@ -128,17 +130,31 @@ class VoiceController @Inject constructor(
         }
     }
 
-    /** The recogniser beeps on every (re)start, which is unbearable in continuous mode. */
+    /** Mute only while listening continuously, and never while the reply is being spoken. */
+    private fun refreshMute() = setBeepsMuted(continuous && !speaking)
+
+    /**
+     * The Google recogniser beeps on every (re)start, which is unbearable in continuous mode. The
+     * beep is not on the media stream alone, so mute the system/notification streams too; those
+     * need "Do Not Disturb" access (granted in Settings, or `adb shell cmd notification allow_dnd`).
+     */
     private fun setBeepsMuted(mute: Boolean) {
         if (mute == muted) return
         muted = mute
-        audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, if (mute) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE, 0)
+        val direction = if (mute) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE
+        for (stream in BEEP_STREAMS) {
+            try {
+                audio.adjustStreamVolume(stream, direction, 0)
+            } catch (e: SecurityException) {
+                Log.i(TAG, "cannot (un)mute stream $stream without Do Not Disturb access")
+            }
+        }
     }
 
     private fun resumePassive(delayMs: Long) {
         if (!continuous) return
         main.postDelayed({
-            if (continuous && _state.value.phase == VoicePhase.Idle && !passiveSession) listen(passive = true)
+            if (continuous && !speaking && _state.value.phase == VoicePhase.Idle && !passiveSession) listen(passive = true)
         }, delayMs)
     }
 
@@ -272,8 +288,30 @@ class VoiceController @Inject constructor(
                 main.post { fail("Nem sikerült a Home Assistant kapcsolat", heard = text) }
                 return@launch
             }
-            main.post { finish(VoiceUi(VoicePhase.Done, heard = text, message = reply), REPLY_VISIBLE_MS) }
+            main.post {
+                finish(VoiceUi(VoicePhase.Done, heard = text, message = reply), REPLY_VISIBLE_MS)
+                speakReply(reply)
+            }
         }
+    }
+
+    /** Reads the reply aloud; the recogniser stays off meanwhile so it doesn't hear itself. */
+    private fun speakReply(reply: String) {
+        if (!config.voiceSpeak || reply.isBlank()) return
+        speaking = true
+        refreshMute()
+        speaker.speak(
+            reply,
+            config.voiceLanguage,
+            onDone = { main.post { endSpeaking() } },
+            onError = { message -> main.post { endSpeaking(); fail(message) } },
+        )
+    }
+
+    private fun endSpeaking() {
+        speaking = false
+        refreshMute()
+        if (_state.value.phase == VoicePhase.Idle) resumePassive(RESTART_MS)
     }
 
     private fun fail(message: String, heard: String = "") =
@@ -302,5 +340,6 @@ class VoiceController @Inject constructor(
         const val ERROR_VISIBLE_MS = 5_000L
         const val RESTART_MS = 300L
         const val HEARD_VISIBLE_MS = 6_000L
+        val BEEP_STREAMS = intArrayOf(AudioManager.STREAM_MUSIC, AudioManager.STREAM_SYSTEM, AudioManager.STREAM_NOTIFICATION)
     }
 }
